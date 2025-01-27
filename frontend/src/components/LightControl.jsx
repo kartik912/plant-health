@@ -32,6 +32,35 @@ const LightControl = () => {
     }
   };
 
+  
+  // useEffect(() => {
+  //   const pollLightStatus = async () => {
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:5000/get_relay_status");
+  //       const data = await response.json();
+  //       setLightStatus(data.status);
+  //     } catch (error) {
+  //       console.error("Error fetching light status:", error);
+  //     }
+  //   };
+
+  //   const lightInterval = setInterval(pollLightStatus, 1000);
+  //   pollLightStatus();
+  //   fetchLightHistory();
+
+  //   return () => clearInterval(lightInterval);
+  // }, []);
+
+  // const fetchLightHistory = async () => {
+  //   try {
+  //     const response = await fetch("http://127.0.0.1:5000/get_contacts");
+  //     const data = await response.json();
+  //     setLightData(data.contacts);
+  //   } catch (error) {
+  //     console.error("Error fetching light history:", error);
+  //   }
+  // };
+
   return (
     <>
       {/* Light Control Panel */}

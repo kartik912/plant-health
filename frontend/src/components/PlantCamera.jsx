@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import img1 from "/src/photo_20250124_072811.jpg";
+import io from 'socket.io-client/dist/socket.io.js';
 
 const PlantCamera = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isLiveStreaming, setIsLiveStreaming] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [liveStreamImage, setLiveStreamImage] = useState(null);
+  const [socket, setSocket] = useState(null);
 
   const capturePhoto = async () => {
     try {
@@ -51,13 +54,27 @@ const PlantCamera = () => {
     }
   };
 
+  
+  // useEffect(() => {
+  //   const newSocket = io('http://127.0.0.1:5000');
+  //   setSocket(newSocket);
+
+  //   newSocket.on('camera_frame', (data) => {
+  //     setLiveStreamImage(`data:image/jpeg;base64,${data.image}`);
+  //   });
+
+  //   return () => newSocket.close();
+  // }, []);
+
+
   return (
-    <>
+    <div className="flex items-center justify-center m-4">
       {/* Photo and live stream panel */}
-      <div className="panel">
+      <div className="panel w-[50vw] flex items-center flex-col">
         <h2 className="panel-title">Plant Camera</h2>
         <div className="panel-content">
-          <div className="camera-controls">
+          <div className="camera-controls flex justify-center gap-2">
+            {!isCapturing && (
             <button
               onClick={capturePhoto}
               disabled={isCapturing || isLiveStreaming}
@@ -65,6 +82,7 @@ const PlantCamera = () => {
             >
               Capture Photo
             </button>
+            )}
             {isCapturing && (
               <button onClick={stopCapture} className="button stop-button">
                 Stop Capture
@@ -80,28 +98,36 @@ const PlantCamera = () => {
             </button>
           </div>
 
-          {capturedPhoto && (
+          {/* {capturedPhoto && ( */}
+          {!capturedPhoto && ( 
             <div className="photo-display">
               <img
-                src={capturedPhoto}
+                // src={capturedPhoto}
+                src={img1}
                 alt="Captured Plant"
-                style={{ maxWidth: "100%", height: "auto" }}
+                style={{ maxWidth: "500px", height: "auto" }}
               />
             </div>
           )}
 
           {isLiveStreaming && liveStreamImage && (
-            <div className="live-stream-display">
+            <div className="live-stream-display flex flex-col items-center justify-center z-10 fixed left-0 top-0 bg-[rgba(0,0,0,0.9)] w-[100vw] h-[100vh]">
+              
               <img
-                src={liveStreamImage}
+                // src={liveStreamImage}
+                src={img1}
                 alt="Live Plant Feed"
-                style={{ maxWidth: "100%", height: "auto" }}
+                style={{ maxWidth: "60rem", height: "auto" }}
               />
+              <button
+              onClick={toggleLiveStream}
+              className="button stop-stream mt-4"
+              >Stop Live Feed</button>
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

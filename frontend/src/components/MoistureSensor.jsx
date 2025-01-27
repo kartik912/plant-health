@@ -34,6 +34,55 @@ const MoistureSensor = () => {
     }
   };
 
+  
+  // useEffect(() => {
+  //   const fetchMoistureData = async () => {
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:5000/get_moisture_data");
+  //       const data = await response.json();
+  //       const formattedData = data.moisture_data.map((item) => ({
+  //         time: new Date(item.date).toLocaleTimeString(),
+  //         level: parseFloat(item.moisture_level),
+  //         state: item.state,
+  //       }));
+  //       setMoistureData(formattedData);
+  //     } catch (error) {
+  //       console.error("Error fetching moisture data:", error);
+  //     }
+  //   };
+  
+  //   fetchMoistureData(); // Fetch data initially
+  //   const interval = setInterval(fetchMoistureData, 5000); // Fetch every 5 seconds
+  
+  //   return () => clearInterval(interval); // Cleanup on unmount
+  // }, []);
+  
+  
+  // useEffect(() => {
+  //   const pollMoisture = async () => {
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:5000/check_moisture");
+  //       const data = await response.json();
+        
+  //       setCurrentMoisture({
+  //         level: data.moisture_level,
+  //         state: data.state
+  //       });
+
+  //       if (data.state === "dry" || data.state === "wet") {
+  //         fetchMoistureData();
+  //       }
+  //     } catch (error) {
+  //       console.error("Error checking moisture:", error);
+  //     }
+  //   };
+
+  //   const moistureInterval = setInterval(pollMoisture, 500);
+  //   pollMoisture();
+  //   return () => clearInterval(moistureInterval);
+  // }, []);
+
+
   return (
     <>
       {/* Moisture Sensor Panel */}

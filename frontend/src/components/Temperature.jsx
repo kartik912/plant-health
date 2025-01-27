@@ -33,6 +33,42 @@ const Temperature = () => {
     }
   };
 
+   
+  // useEffect(() => {
+  //   const fetchTemperatureHumidityData = async () => {
+  //     try {
+  //       // Fetch current temperature and humidity
+  //       const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
+  //       const currentData = await currentResponse.json();
+        
+  //       setCurrentTemperatureHumidity({
+  //         temperature: currentData.temperature,
+  //         humidity: currentData.humidity
+  //       });
+
+  //       // Fetch temperature and humidity history
+  //       const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
+  //       const historyData = await historyResponse.json();
+        
+  //       const formattedData = historyData.temperature_humidity_data.map((item) => ({
+  //         time: new Date(item.date).toLocaleTimeString(),
+  //         temperature: parseFloat(item.temperature),
+  //         humidity: parseFloat(item.humidity)
+  //       }));
+        
+  //       setTemperatureHumidityData(formattedData);
+  //     } catch (error) {
+  //       console.error("Error fetching temperature and humidity data:", error);
+  //     }
+  //   };
+  
+  //   fetchTemperatureHumidityData(); // Fetch data initially
+  //   const interval = setInterval(fetchTemperatureHumidityData, 5000); // Fetch every 5 seconds
+  
+  //   return () => clearInterval(interval); // Cleanup on unmount
+  // }, []);
+
+
   return (
     <>
       {/* Temperature and Humidity Panel */}
