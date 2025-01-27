@@ -1,14 +1,4 @@
 import { useState, useEffect } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
 import io from 'socket.io-client/dist/socket.io.js';
 import "./SensorDashboard.css";
 import { Route, Routes } from "react-router-dom";
@@ -123,15 +113,15 @@ const SensorDashboard = () => {
   //   return () => clearInterval(lightInterval);
   // }, []);
 
-  const fetchLightHistory = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/get_contacts");
-      const data = await response.json();
-      setLightData(data.contacts);
-    } catch (error) {
-      console.error("Error fetching light history:", error);
-    }
-  };
+  // const fetchLightHistory = async () => {
+  //   try {
+  //     const response = await fetch("http://127.0.0.1:5000/get_contacts");
+  //     const data = await response.json();
+  //     setLightData(data.contacts);
+  //   } catch (error) {
+  //     console.error("Error fetching light history:", error);
+  //   }
+  // };
 
   // useEffect(() => {
   //   const fetchMoistureData = async () => {
