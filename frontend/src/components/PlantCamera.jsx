@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import img1 from "/src/photo_20250124_072811.jpg";
 import io from 'socket.io-client/dist/socket.io.js';
+import LightControl from "./LightControl";
 
 const PlantCamera = () => {
   const [isCapturing, setIsCapturing] = useState(false);
@@ -68,9 +69,9 @@ const PlantCamera = () => {
 
 
   return (
-    <div className="flex items-center justify-center m-4">
+    <div className="flex items-center justify-center flex-col-reverse md:flex-row gap-4 m-4">
       {/* Photo and live stream panel */}
-      <div className="panel w-[50vw] flex items-center flex-col">
+      <div className="panel w-[80%] overflow-hidden  flex items-center flex-col">
         <h2 className="panel-title">Plant Camera</h2>
         <div className="panel-content">
           <div className="camera-controls flex justify-center gap-2">
@@ -98,14 +99,14 @@ const PlantCamera = () => {
             </button>
           </div>
 
-          {/* {capturedPhoto && ( */}
-          {!capturedPhoto && ( 
+          {!capturedPhoto && (
             <div className="photo-display">
               <img
                 // src={capturedPhoto}
                 src={img1}
                 alt="Captured Plant"
-                style={{ maxWidth: "500px", height: "auto" }}
+                // style={{ maxWidth: "500px", height: "auto" }}
+                className="md:max-w-[600px]"
               />
             </div>
           )}
@@ -117,7 +118,8 @@ const PlantCamera = () => {
                 // src={liveStreamImage}
                 src={img1}
                 alt="Live Plant Feed"
-                style={{ maxWidth: "60rem", height: "auto" }}
+                // style={{ maxWidth: "60rem", height: "auto" }}
+                className="w-[80%] max-w-[60rem] "
               />
               <button
               onClick={toggleLiveStream}
@@ -127,6 +129,7 @@ const PlantCamera = () => {
           )}
         </div>
       </div>
+      <LightControl/>
     </div>
   );
 };

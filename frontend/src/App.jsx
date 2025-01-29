@@ -53,24 +53,17 @@ const SensorDashboard = () => {
 
   return (
     <>
-    <NavBar/>
-    <div className="sensor-dashboard pt-6 bg-green-200 h-[100vh]">
-      {/* <h1 className="text-center font-bold text-4xl">Plant Care Dashboard</h1>
-      <button onClick={downloadPDF} className="button download-button ">
-        Download PDF
-      </button> */}
-      {/* <div id="dashboard-content" className="dashboard-grid"> */}
-      <Routes>
-        <Route path="/" element={<PlantCamera/>}/>
-        <Route path="/history" element={<History/>}/>
-        <Route path="/light" element={<LightControl/>}/>
-        <Route path="/moist" element={<MoistureSensor/>}/>
-        <Route path="/temp" element={<Temperature/>}/>
-      </Routes>
-        
-        
-        
-      {/* </div> */}
+    <div className="grid md:grid-rows-1 md:grid-cols-[max-content_1fr] w-[100vw] h-[100vh] bg-green-200">
+      <NavBar/>
+      <div className="flex items-center justify-center md:w-[100%]">
+        <Routes>
+          <Route path="/" element={<PlantCamera/>}/>
+          <Route path="/history" element={<History/>}/>
+          <Route path="/light" element={<LightControl/>}/>
+          <Route path="/moist" element={<MoistureSensor/>}/>
+          <Route path="/temp" element={<Temperature/>}/>
+        </Routes>
+      </div>
     </div>
     </>
   );

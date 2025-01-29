@@ -64,16 +64,16 @@ const LightControl = () => {
   return (
     <>
       {/* Light Control Panel */}
-      <div className="panel">
-        <h2 className="panel-title">Light Control</h2>
-        <div className="panel-content">
-          <div className={`status-indicator ${lightStatus.toLowerCase()}`}>
+      <div className="panel text-center">
+        <h2 className="panel-title">Light</h2>
+        <div className="panel-content items-center">
+          {/* <div className={`status-indicator ${lightStatus.toLowerCase()}`}>
             {lightStatus}
-          </div>
-          <button onClick={toggleLight} className="button toggle-button">
+          </div> */}
+          <button onClick={toggleLight} className="button toggle-button w-[6rem]">
             {lightStatus === "ON" ? "Turn OFF" : "Turn ON"}
           </button>
-          <div className="history">
+          {/* <div className="history">
             <div className="history-header">
               <h3>Light History</h3>
               <button
@@ -94,7 +94,7 @@ const LightControl = () => {
                 <li>No light history available.</li>
               )}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </>
