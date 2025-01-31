@@ -102,7 +102,7 @@ const MoistureSensor = () => {
               <Line type="monotone" dataKey="level" stroke="#3b82f6" />
             </LineChart>
           </ResponsiveContainer>
-          <div className="history">
+          {/* <div className="history">
             <div className="history-header">
               <h3>Moisture History</h3>
               <button
@@ -123,7 +123,7 @@ const MoistureSensor = () => {
                 <li>No moisture history available.</li>
               )}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </>

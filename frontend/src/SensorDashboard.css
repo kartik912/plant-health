@@ -116,17 +116,6 @@
   background: red;
 }
 
-.history {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .history ul {
   list-style: none;
   padding: 0;

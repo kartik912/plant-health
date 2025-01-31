@@ -100,7 +100,7 @@ const Temperature = () => {
               />
             </LineChart>
           </ResponsiveContainer>
-          <div className="history">
+          {/* <div className="history">
             <div className="history-header">
               <h3>Temperature & Humidity History</h3>
               <button
@@ -122,7 +122,7 @@ const Temperature = () => {
                 <li>No temperature and humidity history available.</li>
               )}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </>
