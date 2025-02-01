@@ -45,13 +45,13 @@ const History = () => {
     const fetchTemperatureHumidityData = async () => {
       try {
         // Fetch current temperature and humidity
-        const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
-        const currentData = await currentResponse.json();
+        // const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
+        // const currentData = await currentResponse.json();
         
-        setCurrentTemperatureHumidity({
-          temperature: currentData.temperature,
-          humidity: currentData.humidity
-        });
+        // setCurrentTemperatureHumidity({
+        //   temperature: currentData.temperature,
+        //   humidity: currentData.humidity
+        // });
 
         // Fetch temperature and humidity history
         const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
@@ -99,29 +99,29 @@ const History = () => {
   }, []);
   
   
-  useEffect(() => {
-    const pollMoisture = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/check_moisture");
-        const data = await response.json();
+  // useEffect(() => {
+  //   const pollMoisture = async () => {
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:5000/check_moisture");
+  //       const data = await response.json();
         
-        setCurrentMoisture({
-          level: data.moisture_level,
-          state: data.state
-        });
+  //       setCurrentMoisture({
+  //         level: data.moisture_level,
+  //         state: data.state
+  //       });
 
-        if (data.state === "dry" || data.state === "wet") {
-          fetchMoistureData();
-        }
-      } catch (error) {
-        console.error("Error checking moisture:", error);
-      }
-    };
+  //       if (data.state === "dry" || data.state === "wet") {
+  //         fetchMoistureData();
+  //       }
+  //     } catch (error) {
+  //       console.error("Error checking moisture:", error);
+  //     }
+  //   };
 
-    const moistureInterval = setInterval(pollMoisture, 500);
-    pollMoisture();
-    return () => clearInterval(moistureInterval);
-  }, []);
+  //   const moistureInterval = setInterval(pollMoisture, 500);
+  //   pollMoisture();
+  //   return () => clearInterval(moistureInterval);
+  // }, []);
 
 
   return (
