@@ -297,14 +297,14 @@ def download_database_pdf():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-# @app.route("/get_moisture_data", methods=["GET"])
-# def get_moisture_data():
-#     try:
-#         all_data = MoistureSensorData.query.all()
-#         results = [{"id": data.id, "moisture_level": data.moisture_level, "state": data.state, "date": data.date} for data in all_data]
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
-#     return jsonify({"moisture_data": results}), 200
+@app.route("/get_moisture_data", methods=["GET"])
+def get_moisture_data():
+    try:
+        all_data = MoistureSensorData.query.all()
+        results = [{"id": data.id, "moisture_level": data.moisture_level, "state": data.state, "date": data.date} for data in all_data]
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    return jsonify({"moisture_data": results}), 200
 
 # @app.route("/check_moisture", methods=["GET"])
 # def check_moisture():
