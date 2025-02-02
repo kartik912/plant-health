@@ -28,11 +28,6 @@
   margin-bottom: 20px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
 
 .panel {
   background: #fff;
@@ -45,12 +40,6 @@
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 20px;
-}
-
-.panel-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
 .status-indicator {
@@ -116,12 +105,12 @@
   background: red;
 }
 
-.history ul {
+.hist ul {
   list-style: none;
   padding: 0;
 }
 
-.history li {
+.hist li {
   font-size: 0.9rem;
   color: gray;
   margin-bottom: 10px;

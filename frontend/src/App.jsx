@@ -53,9 +53,9 @@ const SensorDashboard = () => {
 
   return (
     <>
-    <div className="grid md:grid-rows-1 md:grid-cols-[max-content_1fr] h-[100vh] bg-green-200">
+    <div className="grid md:grid-rows-1 md:grid-cols-[max-content_1fr] md:h-[100vh] bg-green-200">
       <NavBar/>
-      <div className="flex items-center justify-center md:w-[100%]">
+      <div className="flex justify-center md:items-center">
         <Routes>
           <Route path="/" element={<PlantCamera/>}/>
           <Route path="/history" element={<History/>}/>

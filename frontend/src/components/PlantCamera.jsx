@@ -73,7 +73,7 @@ const PlantCamera = () => {
       {/* Photo and live stream panel */}
       <div className="panel w-[80%] overflow-hidden  flex items-center flex-col">
         <h2 className="panel-title">Plant Camera</h2>
-        <div className="panel-content">
+        <div className="panel-content flex flex-col gap-10">
           <div className="camera-controls flex justify-center gap-2">
             {!isCapturing && (
             <button

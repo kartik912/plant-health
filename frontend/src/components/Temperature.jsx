@@ -100,29 +100,6 @@ const Temperature = () => {
               />
             </LineChart>
           </ResponsiveContainer>
-          {/* <div className="history">
-            <div className="history-header">
-              <h3>Temperature & Humidity History</h3>
-              <button
-                onClick={deleteTemperatureHumidityHistory}
-                className="button clear-button"
-              >
-                Clear History
-              </button>
-            </div>
-            <ul>
-              {temperatureHumidityData.length ? (
-                temperatureHumidityData.map((data, index) => (
-                  <li key={index}>
-                    Temp: {data.temperature}°C, Humidity: {data.humidity}% at{" "}
-                    {data.time}
-                  </li>
-                ))
-              ) : (
-                <li>No temperature and humidity history available.</li>
-              )}
-            </ul>
-          </div> */}
         </div>
       </div>
     </>
