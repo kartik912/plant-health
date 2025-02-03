@@ -86,9 +86,9 @@ const MoistureSensor = () => {
   return (
     <>
       {/* Moisture Sensor Panel */}
-      <div className="panel">
+      <div className="panel w-[80%] mb-4 md:mb-0">
         <h2 className="panel-title">Moisture Sensor</h2>
-        <div className="panel-content">
+        <div className="panel-content text-center">
           <div className={`status-indicator ${currentMoisture.state}`}>
             {currentMoisture.state || "No reading"}
           </div>

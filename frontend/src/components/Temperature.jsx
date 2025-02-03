@@ -72,10 +72,10 @@ const Temperature = () => {
   return (
     <>
       {/* Temperature and Humidity Panel */}
-      <div className="panel">
+      <div className="panel w-[80%] mb-4 md:mb-0">
         <h2 className="panel-title">Temperature & Humidity</h2>
         <div className="panel-content">
-          <div className="sensor-readings">
+          <div className="sensor-readings mb-4 font-semibold">
             <div>Temperature: {currentTemperatureHumidity.temperature}°C</div>
             <div>Humidity: {currentTemperatureHumidity.humidity}%</div>
           </div>
