@@ -69,11 +69,11 @@ const PlantCamera = () => {
 
 
   return (
-    <div className="flex items-center justify-center flex-col-reverse md:flex-row gap-4 m-4">
+    <div className="flex max-w-[80%] items-center justify-center flex-col-reverse md:flex-row gap-4">
       {/* Photo and live stream panel */}
-      <div className="panel w-[80%] overflow-hidden  flex items-center flex-col">
+      <div className="panel overflow-hidden  flex items-center flex-col">
         <h2 className="panel-title">Plant Camera</h2>
-        <div className="panel-content flex flex-col gap-10">
+        <div className="panel-content flex flex-col gap-10 overflow-hidden m-4">
           <div className="camera-controls flex justify-center gap-2">
             {!isCapturing && (
             <button
@@ -105,8 +105,7 @@ const PlantCamera = () => {
                 // src={capturedPhoto}
                 src={img1}
                 alt="Captured Plant"
-                // style={{ maxWidth: "500px", height: "auto" }}
-                className="md:max-w-[600px]"
+                className="md:max-w-[800px]"
               />
             </div>
           )}
@@ -118,7 +117,6 @@ const PlantCamera = () => {
                 // src={liveStreamImage}
                 src={img1}
                 alt="Live Plant Feed"
-                // style={{ maxWidth: "60rem", height: "auto" }}
                 className="w-[80%] max-w-[60rem] "
               />
               <button
@@ -129,7 +127,7 @@ const PlantCamera = () => {
           )}
         </div>
       </div>
-      <LightControl/>
+      <LightControl isLiveStreaming={isLiveStreaming} liveStreamImage={liveStreamImage}/>
     </div>
   );
 };
