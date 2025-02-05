@@ -67,7 +67,7 @@ const LightControl = (props) => {
   return (
     <>
       {/* Light Control Panel */}
-      <div className={`absolute ${ isLiveStreaming && liveStreamImage ? "top-[20%]" : "top-[30%]"} md:left-[85%] z-20`}>
+      <div className={`absolute ${ isLiveStreaming && liveStreamImage ? "bottom-[20%]" : "top-[30%]"} md:left-[85%] z-20`}>
         <div className="panel-content items-center">
           {/* <div className={`status-indicator ${lightStatus.toLowerCase()}`}>
             {lightStatus}

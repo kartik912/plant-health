@@ -30,26 +30,6 @@ const SensorDashboard = () => {
   // }, []);
 
 
-  const downloadPDF = async () => {
-    try {
-        const response = await fetch("http://127.0.0.1:5000/download_database_pdf");
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'PlantCareDashboard.pdf'; // Set the desired file name
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url); // Clean up the URL object
-        } else {
-            console.error("Failed to fetch database PDF:", response.statusText);
-        }
-    } catch (error) {
-        console.error("Error downloading database PDF:", error);
-    }
-  };
 
   return (
     <>
