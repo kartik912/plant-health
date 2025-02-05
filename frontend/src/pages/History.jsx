@@ -6,7 +6,8 @@ const History = () => {
   
   const [temperatureHumidityData, setTemperatureHumidityData] = useState([]);
   const [moistureData, setMoistureData] = useState([]);
-  const [change, setChange] = useState(false)
+  const [tdsData, setTdsData] = useState([]);
+      
   
   const deleteTemperatureHumidityHistory = async () => {
     try {
@@ -39,6 +40,20 @@ const History = () => {
       console.error("Error clearing moisture history:", error);
     }
   };
+
+  const deleteTDSHistory = async () => {
+      try {
+          const response = await fetch("http://127.0.0.1:5000/delete_tds_data", {
+              method: "POST"
+          });
+          if (response.ok) {
+              setTdsData([]);
+          }
+      } catch (error) {
+          console.error("Error clearing TDS history:", error);
+      }
+  };
+
 
   
   const downloadPDF = async () => {
@@ -86,9 +101,9 @@ const History = () => {
     };
   
     fetchTemperatureHumidityData(); // Fetch data initially
-    // const interval = setInterval(fetchTemperatureHumidityData, 5000); // Fetch every 5 seconds
+    const interval = setInterval(fetchTemperatureHumidityData, 10000); // Fetch every 10 min
   
-    // return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval); // Cleanup on unmount
   }, []);
 
   
@@ -109,11 +124,30 @@ const History = () => {
     };
   
     fetchMoistureData(); // Fetch data initially
-    // const interval = setInterval(fetchMoistureData, 5000); // Fetch every 5 seconds
+    const interval = setInterval(fetchMoistureData, 10000); // Fetch every 10 min
   
-    // return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval); // Cleanup on unmount
   }, []);
   
+  
+  useEffect(() => {
+      const fetchTDSData = async () => {
+        try {
+            const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
+            const historyData = await historyResponse.json();
+            const formattedData = historyData.tds_data.map(item => ({
+                time: new Date(item.date).toLocaleTimeString(),
+                tds_value: parseFloat(item.tds_value)
+            }));
+            setTdsData(formattedData);
+        } catch (error) {
+            console.error("Error fetching TDS data:", error);
+        }
+      };
+      fetchTDSData();
+      const interval = setInterval(fetchTDSData, 10000);
+      return () => clearInterval(interval);
+  }, []);
   
   return (
       <div className="History panel overflow-hidden w-[90%] max-h-[80%] mt-20 md:mt-0 flex items-center flex-col">
@@ -168,6 +202,30 @@ const History = () => {
               )}
             </ul>
           </div>
+
+          <div className="tds-history hist flex flex-col items-center border-2 p-2 rounded-xl">
+              <div className="flex flex-col w-full">
+                <h3 className="text-xl font-semibold mb-2 text-center">TDS History</h3>
+                <button
+                  onClick={deleteTDSHistory}
+                  className="button clear-button mb-2 "
+                >
+                  Clear History
+                </button>
+              </div>
+              <ul className="text-center w-[80%] ">
+                {tdsData.length ? (
+                  tdsData.map((data, index) => (
+                    <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
+                      TDS : {Math.floor(data.tds_value * 100)/100}{"\t"}at {data.time}
+                    </li>
+                  ))
+                ) : (
+                  <li>No TDS history available.</li>
+                )}
+              </ul>
+          </div>
+
         </div>
       </div>
   );

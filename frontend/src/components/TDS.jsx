@@ -38,18 +38,6 @@ const TDS = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const deleteTDSHistory = async () => {
-        try {
-            const response = await fetch("http://127.0.0.1:5000/delete_tds_data", {
-                method: "POST"
-            });
-            if (response.ok) {
-                setTdsData([]);
-            }
-        } catch (error) {
-            console.error("Error clearing TDS history:", error);
-        }
-    };
 
     return (
         <>
@@ -74,7 +62,6 @@ const TDS = () => {
                             />
                         </LineChart>
                     </ResponsiveContainer>
-                    <button onClick={deleteTDSHistory} className="btn btn-danger mt-4">Clear Data</button>
                 </div>
             </div>
         </>

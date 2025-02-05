@@ -18,23 +18,23 @@ import os
 import math
 import sys
 import time
-from grove.adc import ADC
+# from grove.adc import ADC
 
-class GroveTDS:
-    def __init__(self, channel):
-        self.channel = channel
-        self.adc = ADC()
+# class GroveTDS:
+#     def __init__(self, channel):
+#         self.channel = channel
+#         self.adc = ADC()
 
-    @property
-    def TDS(self):
-        value = self.adc.read(self.channel)
-        if value != 0:
-            voltage = value * 5 / 1024.0
-            tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
-            return tds_value
-        return 0
+#     @property
+#     def TDS(self):
+#         value = self.adc.read(self.channel)
+#         if value != 0:
+#             voltage = value * 5 / 1024.0
+#             tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
+#             return tds_value
+#         return 0
 
-tdssensor = GroveTDS(2)
+# tdssensor = GroveTDS(2)
 
 # from sqlalchemy import inspect
 # @app.route("/get_table_columns", methods=["GET"])
@@ -254,19 +254,19 @@ def delete_temperature_humidity_data():
         return jsonify({"message": str(e)}), 400
 
 
-@app.route("/get_tds", methods=["GET"])
-def get_tds():
-    try:
-        tds_value = tdssensor.TDS
-        if tds_value:
-            new_data = TDSData(tds_value=tds_value)
-            db.session.add(new_data)
-            db.session.commit()
-            return jsonify({"tds_value": tds_value}), 200
-        else:
-            return jsonify({"message": "Failed to read TDS sensor data"}), 400
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
+# @app.route("/get_tds", methods=["GET"])
+# def get_tds():
+#     try:
+#         tds_value = tdssensor.TDS
+#         if tds_value:
+#             new_data = TDSData(tds_value=tds_value)
+#             db.session.add(new_data)
+#             db.session.commit()
+#             return jsonify({"tds_value": tds_value}), 200
+#         else:
+#             return jsonify({"message": "Failed to read TDS sensor data"}), 400
+#     except Exception as e:
+#         return jsonify({"message": str(e)}), 400
 
 @app.route("/get_tds_history", methods=["GET"])
 def get_tds_history():

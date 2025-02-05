@@ -5,9 +5,9 @@ import LightControl from "./LightControl";
 
 const PlantCamera = () => {
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isLiveStreaming, setIsLiveStreaming] = useState(true);
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [liveStreamImage, setLiveStreamImage] = useState(true);
+  const [liveStreamImage, setLiveStreamImage] = useState(null);
   const [socket, setSocket] = useState(null);
 
   const capturePhoto = async () => {
@@ -117,7 +117,7 @@ const PlantCamera = () => {
                 // src={liveStreamImage}
                 src={img1}
                 alt="Live Plant Feed"
-                className="max-w-[80%] max-h-[80%]"
+                className="w-[80%] max-w-[60rem] "
               />
               <button
               onClick={toggleLiveStream}
