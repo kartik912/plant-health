@@ -117,7 +117,7 @@ const PlantCamera = () => {
                 // src={liveStreamImage}
                 src={img1}
                 alt="Live Plant Feed"
-                className="w-[80%] max-w-[60rem] "
+                className="max-w-[80%] max-h-[80%]"
               />
               <button
               onClick={toggleLiveStream}

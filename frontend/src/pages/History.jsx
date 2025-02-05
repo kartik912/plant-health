@@ -41,6 +41,28 @@ const History = () => {
   };
 
   
+  const downloadPDF = async () => {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/download_database_pdf");
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'PlantCareDashboard.pdf'; // Set the desired file name
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url); // Clean up the URL object
+        } else {
+            console.error("Failed to fetch database PDF:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Error downloading database PDF:", error);
+    }
+  };
+
+  
 
   
   useEffect(() => {
@@ -96,6 +118,9 @@ const History = () => {
   return (
       <div className="History panel overflow-hidden w-[90%] max-h-[80%] mt-20 md:mt-0 flex items-center flex-col">
         <h2 className="panel-title">History</h2>
+        <button onClick={downloadPDF} className="button download-button mx-3 mb-4">
+          Download PDF
+        </button>
         <div className="grid md:grid-cols-2 gap-4 w-[100%] overflow-y-scroll ">
           <div className="temperature-history hist flex flex-col items-center border-2 p-2 rounded-xl">
               <div className="flex flex-col w-full">
