@@ -5,7 +5,7 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from config import app, db
-from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord
+from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData
 # from gpiozero import OutputDevice
 # from grove.grove_moisture_sensor import GroveMoistureSensor
 # from gpiozero import Servo
@@ -14,6 +14,25 @@ import time
 # import adafruit_dht
 # import board
 import os
+
+import math
+import sys
+import time
+from grove.adc import ADC
+
+class GroveTDS:
+    def __init__(self, channel):
+        self.channel = channel
+        self.adc = ADC()
+
+    @property
+    def TDS(self):
+        value = self.adc.read(self.channel)
+        if value != 0:
+            voltage = value * 5 / 1024.0
+            tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
+            return tds_value
+        return 0
 
 # from sqlalchemy import inspect
 # @app.route("/get_table_columns", methods=["GET"])
@@ -229,6 +248,33 @@ def delete_temperature_humidity_data():
         TemperatureHumidityData.query.delete()
         db.session.commit()
         return jsonify({"message": "All temperature and humidity data deleted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/get_tds", methods=["GET"])
+def get_tds():
+        sensor = GroveTDS(2)
+        tds_value = sensor.TDS
+        return jsonify({"tds_value": tds_value}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+
+@app.route("/get_tds_history", methods=["GET"])
+def get_tds_history():
+    try:
+        all_data = TDSData.query.all()
+        results = [data.to_json() for data in all_data]
+        return jsonify({"tds_data": results}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/delete_tds_data", methods=["POST"])
+def delete_tds_data():
+    try:
+        TDSData.query.delete()
+        db.session.commit()
+        return jsonify({"message": "All TDS data deleted successfully!"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 

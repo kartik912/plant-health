@@ -55,3 +55,15 @@ class PhotoRecord(db.Model):
             "google_drive_link": self.photo_path,
             "captured_at": self.captured_at.isoformat()
         }
+
+class TDSData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tds_value = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "tds_value": self.tds_value,
+            "date": self.date.strftime('%Y-%m-%d %H:%M:%S')
+        }

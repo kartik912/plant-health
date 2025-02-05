@@ -6,6 +6,7 @@ import PlantCamera from "./components/PlantCamera";
 import LightControl from "./components/LightControl";
 import MoistureSensor from "./components/MoistureSensor";
 import Temperature from "./components/Temperature";
+import TDS from './components/TDS'
 import NavBar from "./components/NavBar";
 import Layout from "./Layout";
 import History from "./pages/History";
@@ -62,6 +63,7 @@ const SensorDashboard = () => {
           <Route path="/light" element={<LightControl/>}/>
           <Route path="/moist" element={<MoistureSensor/>}/>
           <Route path="/temp" element={<Temperature/>}/>
+          <Route path="/tds" element={<TDS/>}/>
         </Routes>
       </div>
     </div>
