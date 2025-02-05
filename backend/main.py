@@ -34,6 +34,8 @@ class GroveTDS:
             return tds_value
         return 0
 
+tdssensor = GroveTDS(2)
+
 # from sqlalchemy import inspect
 # @app.route("/get_table_columns", methods=["GET"])
 # def get_table_columns():
@@ -209,29 +211,29 @@ def get_photo_records():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-# @app.route("/get_temperature_humidity", methods=["GET"])
-# def get_temperature_humidity():
-#     try:
-#         temperature = dht_sensor.temperature
-#         humidity = dht_sensor.humidity
+@app.route("/get_temperature_humidity", methods=["GET"])
+def get_temperature_humidity():
+    try:
+        temperature = dht_sensor.temperature
+        humidity = dht_sensor.humidity
         
-#         if temperature is not None and humidity is not None:
-#             # Store sensor data
-#             new_data = TemperatureHumidityData(
-#                 temperature=temperature, 
-#                 humidity=humidity
-#             )
-#             db.session.add(new_data)
-#             db.session.commit()
+        if temperature is not None and humidity is not None:
+            # Store sensor data
+            new_data = TemperatureHumidityData(
+                temperature=temperature, 
+                humidity=humidity
+            )
+            db.session.add(new_data)
+            db.session.commit()
             
-#             return jsonify({
-#                 "temperature": temperature, 
-#                 "humidity": humidity
-#             }), 200
-#         else:
-#             return jsonify({"message": "Failed to read sensor data"}), 400
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
+            return jsonify({
+                "temperature": temperature, 
+                "humidity": humidity
+            }), 200
+        else:
+            return jsonify({"message": "Failed to read sensor data"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 @app.route("/get_temperature_humidity_history", methods=["GET"])
 def get_temperature_humidity_history():
@@ -251,14 +253,20 @@ def delete_temperature_humidity_data():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
+
 @app.route("/get_tds", methods=["GET"])
 def get_tds():
-        sensor = GroveTDS(2)
-        tds_value = sensor.TDS
-        return jsonify({"tds_value": tds_value}), 200
+    try:
+        tds_value = tdssensor.TDS
+        if tds_value:
+            new_data = TDSData(tds_value=tds_value)
+            db.session.add(new_data)
+            db.session.commit()
+            return jsonify({"tds_value": tds_value}), 200
+        else:
+            return jsonify({"message": "Failed to read TDS sensor data"}), 400
     except Exception as e:
         return jsonify({"message": str(e)}), 400
-
 
 @app.route("/get_tds_history", methods=["GET"])
 def get_tds_history():
