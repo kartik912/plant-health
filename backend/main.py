@@ -11,7 +11,7 @@ from models import LightBulb, MoistureSensorData, TemperatureHumidityData, Photo
 # from gpiozero import Servo
 from time import sleep
 import time
-from grove.adc import ADC
+# from grove.adc import ADC
 # import adafruit_dht
 # import board
 import os
@@ -19,7 +19,7 @@ import os
 import math
 import sys
 
-adc = ADC()
+# adc = ADC()
 # class GroveTDS:
 #     def __init__(self, channel):
 #         self.channel = channel
@@ -211,20 +211,20 @@ def get_photo_records():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-@app.route("/get_ph", methods=["GET"])
-def get_ph():
-    try:
-        raw_voltage = adc.read_voltage(4)
-        voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
+# @app.route("/get_ph", methods=["GET"])
+# def get_ph():
+#     try:
+#         raw_voltage = adc.read_voltage(4)
+#         voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
 
-        # Store in database
-        new_data = PHData(ph_value=voltage)
-        db.session.add(new_data)
-        db.session.commit()
+#         # Store in database
+#         new_data = PHData(ph_value=voltage)
+#         db.session.add(new_data)
+#         db.session.commit()
 
-        return jsonify({"voltage": voltage}), 200
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
+#         return jsonify({"voltage": voltage}), 200
+#     except Exception as e:
+#         return jsonify({"message": str(e)}), 400
 
 @app.route("/get_ph_history", methods=["GET"])
 def get_ph_history():

@@ -7,7 +7,8 @@ const History = () => {
   const [temperatureHumidityData, setTemperatureHumidityData] = useState([]);
   const [moistureData, setMoistureData] = useState([]);
   const [tdsData, setTdsData] = useState([]);
-      
+  const [phData, setPHData] = useState([]);
+          
   
   const deleteTemperatureHumidityHistory = async () => {
     try {
@@ -51,6 +52,19 @@ const History = () => {
           }
       } catch (error) {
           console.error("Error clearing TDS history:", error);
+      }
+  };
+
+  const deletePHHistory = async () => {
+      try {
+          const response = await fetch("http://127.0.0.1:5000/delete_ph_data", {
+              method: "POST"
+          });
+          if (response.ok) {
+              setPHData([]);
+          }
+      } catch (error) {
+          console.error("Error clearing PH history:", error);
       }
   };
 
@@ -148,6 +162,28 @@ const History = () => {
       const interval = setInterval(fetchTDSData, 10000);
       return () => clearInterval(interval);
   }, []);
+
+  useEffect(()=>{
+    const fetchPHData = async () => {
+      try {
+          
+          const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
+          const historyData = await historyResponse.json();
+          const formattedData = historyData.ph_data.map(item => ({
+              time: new Date(item.timestamp).toLocaleTimeString(),
+              ph_value: parseFloat(item.ph_value)
+          }));
+          setPHData(formattedData);
+      } catch (error) {
+          console.error("Error fetching PH data:", error);
+      }
+    };
+    fetchPHData();
+    const interval = setInterval(fetchPHData, 10000);
+    return () => clearInterval(interval);
+  }, [])
+
+  console.log(phData)
   
   return (
       <div className="History panel overflow-hidden w-[90%] max-h-[80%] mt-20 md:mt-0 flex items-center flex-col">
@@ -155,7 +191,7 @@ const History = () => {
         <button onClick={downloadPDF} className="button download-button mx-3 mb-4">
           Download PDF
         </button>
-        <div className="grid md:grid-cols-2 gap-4 w-[100%] overflow-y-scroll ">
+        <div className="grid md:grid-cols-2 gap-4 w-[100%] overflow-y-scroll">
           <div className="temperature-history hist flex flex-col items-center border-2 p-2 rounded-xl">
               <div className="flex flex-col w-full">
                 <h3 className="text-xl font-semibold mb-2 text-center">Temperature & Humidity History</h3>
@@ -222,6 +258,29 @@ const History = () => {
                   ))
                 ) : (
                   <li>No TDS history available.</li>
+                )}
+              </ul>
+          </div>
+
+          <div className="ph-history hist flex flex-col items-center border-2 p-2 rounded-xl">
+              <div className="flex flex-col w-full">
+                <h3 className="text-xl font-semibold mb-2 text-center">PH History</h3>
+                <button
+                  onClick={deletePHHistory}
+                  className="button clear-button mb-2 "
+                >
+                  Clear History
+                </button>
+              </div>
+              <ul className="text-center w-[80%] ">
+                {phData.length ? (
+                  phData.map((data, index) => (
+                    <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
+                      PH : {Math.floor(data.ph_value * 100)/100}{"\t"}at {data.time}
+                    </li>
+                  ))
+                ) : (
+                  <li>No PH history available.</li>
                 )}
               </ul>
           </div>

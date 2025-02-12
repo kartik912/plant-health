@@ -10,6 +10,7 @@ import TDS from './components/TDS'
 import NavBar from "./components/NavBar";
 import Layout from "./Layout";
 import History from "./pages/History";
+import PHSensor from "./components/PhSensor";
 
 const SensorDashboard = () => {
   
@@ -34,7 +35,7 @@ const SensorDashboard = () => {
 
   return (
     <>
-    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh] md:h-[100vh] gap-4 md:gap-0 bg-green-200">
+    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh] md:h-[100vh] gap-4 md:gap-0 bg-[#A0C878]">
       <NavBar/>
       <div className="flex justify-center md:items-center">
         <Routes>
@@ -44,6 +45,7 @@ const SensorDashboard = () => {
           <Route path="/moist" element={<MoistureSensor/>}/>
           <Route path="/temp" element={<Temperature/>}/>
           <Route path="/tds" element={<TDS/>}/>
+          <Route path="/ph" element={<PHSensor/>}/>
         </Routes>
       </div>
     </div>
