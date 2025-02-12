@@ -5,21 +5,21 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from config import app, db
-from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData
+from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData
 # from gpiozero import OutputDevice
 # from grove.grove_moisture_sensor import GroveMoistureSensor
 # from gpiozero import Servo
 from time import sleep
 import time
+from grove.adc import ADC
 # import adafruit_dht
 # import board
 import os
 
 import math
 import sys
-import time
-# from grove.adc import ADC
 
+adc = ADC()
 # class GroveTDS:
 #     def __init__(self, channel):
 #         self.channel = channel
@@ -208,6 +208,39 @@ def get_photo_records():
         filepath = os.path.join(PHOTO_DIRECTORY, latest_photo)
         
         return send_file(filepath, mimetype='image/jpeg')
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/get_ph", methods=["GET"])
+def get_ph():
+    try:
+        raw_voltage = adc.read_voltage(4)
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
+
+        # Store in database
+        new_data = PHData(ph_value=voltage)
+        db.session.add(new_data)
+        db.session.commit()
+
+        return jsonify({"voltage": voltage}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/get_ph_history", methods=["GET"])
+def get_ph_history():
+    try:
+        all_data = PHData.query.all()
+        results = [data.to_json() for data in all_data]
+        return jsonify({"ph_data": results}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/delete_ph_data", methods=["POST"])
+def delete_ph_data():
+    try:
+        PHData.query.delete()
+        db.session.commit()
+        return jsonify({"message": "All pH data deleted successfully!"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 

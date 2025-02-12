@@ -67,3 +67,15 @@ class TDSData(db.Model):
             "tds_value": self.tds_value,
             "date": self.date.strftime('%Y-%m-%d %H:%M:%S')
         }
+
+class PHData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ph_value = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def to_json(self):
+        return {
+            "id": self.id, 
+            "ph_value": self.ph_value,
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        }
