@@ -14,25 +14,25 @@ const TDS = () => {
     const [tdsData, setTdsData] = useState([]);
     const [currentTDS, setCurrentTDS] = useState(0);
 
-    const fetchTDSData = async () => {
-        try {
-            const response = await fetch("http://127.0.0.1:5000/get_tds");
-            const data = await response.json();
-            setCurrentTDS(data.tds_value);
-
-            const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
-            const historyData = await historyResponse.json();
-            const formattedData = historyData.tds_data.map(item => ({
-                time: new Date(item.date).toLocaleTimeString(),
-                tds_value: parseFloat(item.tds_value)
-            }));
-            setTdsData(formattedData);
-        } catch (error) {
-            console.error("Error fetching TDS data:", error);
-        }
-    };
-
+    
     useEffect(() => {
+        const fetchTDSData = async () => {
+            try {
+                // const response = await fetch("http://127.0.0.1:5000/get_tds");
+                // const data = await response.json();
+                // setCurrentTDS(data.tds_value);
+    
+                const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
+                const historyData = await historyResponse.json();
+                const formattedData = historyData.tds_data.map(item => ({
+                    time: new Date(item.date).toLocaleTimeString(),
+                    tds_value: parseFloat(item.tds_value)
+                }));
+                setTdsData(formattedData);
+            } catch (error) {
+                console.error("Error fetching TDS data:", error);
+            }
+        };
         fetchTDSData();
         const interval = setInterval(fetchTDSData, 10000);
         return () => clearInterval(interval);

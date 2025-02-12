@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     LineChart,
     Line,
@@ -17,56 +17,41 @@ const Temperature = () => {
 
   const [temperatureHumidityData, setTemperatureHumidityData] = useState([]);
 
-  const deleteTemperatureHumidityHistory = async () => {
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:5000/delete_temperature_humidity_data",
-        {
-          method: "POST",
-        }
-      );
-      if (response.ok) {
-        setTemperatureHumidityData([]);
-      }
-    } catch (error) {
-      console.error("Error clearing temperature and humidity history:", error);
-    }
-  };
 
    
-  // useEffect(() => {
-  //   const fetchTemperatureHumidityData = async () => {
-  //     try {
-  //       // Fetch current temperature and humidity
-  //       const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
-  //       const currentData = await currentResponse.json();
+  useEffect(() => {
+    const fetchTemperatureHumidityData = async () => {
+      try {
+        // Fetch current temperature and humidity
+        const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
+        const currentData = await currentResponse.json();
         
-  //       setCurrentTemperatureHumidity({
-  //         temperature: currentData.temperature,
-  //         humidity: currentData.humidity
-  //       });
+        setCurrentTemperatureHumidity({
+          temperature: currentData.temperature,
+          humidity: currentData.humidity
+        });
 
-  //       // Fetch temperature and humidity history
-  //       const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
-  //       const historyData = await historyResponse.json();
+        // Fetch temperature and humidity history
+        const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
+        const historyData = await historyResponse.json();
         
-  //       const formattedData = historyData.temperature_humidity_data.map((item) => ({
-  //         time: new Date(item.date).toLocaleTimeString(),
-  //         temperature: parseFloat(item.temperature),
-  //         humidity: parseFloat(item.humidity)
-  //       }));
+        const formattedData = historyData.temperature_humidity_data.map((item) => ({
+          time: new Date(item.date).toLocaleTimeString(),
+          temperature: parseFloat(item.temperature),
+          humidity: parseFloat(item.humidity)
+        }));
         
-  //       setTemperatureHumidityData(formattedData);
-  //     } catch (error) {
-  //       console.error("Error fetching temperature and humidity data:", error);
-  //     }
-  //   };
+        setTemperatureHumidityData(formattedData);
+      } catch (error) {
+        console.error("Error fetching temperature and humidity data:", error);
+      }
+    };
   
-  //   fetchTemperatureHumidityData(); // Fetch data initially
-  //   const interval = setInterval(fetchTemperatureHumidityData, 5000); // Fetch every 5 seconds
+    fetchTemperatureHumidityData(); // Fetch data initially
+    const interval = setInterval(fetchTemperatureHumidityData, 5000); // Fetch every 5 seconds
   
-  //   return () => clearInterval(interval); // Cleanup on unmount
-  // }, []);
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []);
 
 
   return (

@@ -16,9 +16,9 @@ const PHSensor = () => {
 
     const fetchPHData = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:5000/get_ph");
-            const data = await response.json();
-            setCurrentPH(data.ph_value);
+            // const response = await fetch("http://127.0.0.1:5000/get_ph");
+            // const data = await response.json();
+            // setCurrentPH(data.ph_value);
 
             const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
             const historyData = await historyResponse.json();
