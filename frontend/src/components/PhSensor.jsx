@@ -16,10 +16,6 @@ const PHSensor = () => {
 
     const fetchPHData = async () => {
         try {
-            // const response = await fetch("http://127.0.0.1:5000/get_ph");
-            // const data = await response.json();
-            // setCurrentPH(data.voltage);
-
             const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
             const historyData = await historyResponse.json();
             const formattedData = historyData.ph_data.map(item => ({
@@ -27,6 +23,10 @@ const PHSensor = () => {
                 ph_value: parseFloat(item.ph_value)
             }));
             setPHData(formattedData);
+            
+            if (formattedData.length > 0) {
+                setCurrentPH(formattedData[formattedData.length - 1].ph_value);
+            }
         } catch (error) {
             console.error("Error fetching PH data:", error);
         }
@@ -37,8 +37,6 @@ const PHSensor = () => {
         const interval = setInterval(fetchPHData, 10000);
         return () => clearInterval(interval);
     }, []);
-
-    // console.log(phData)
 
     return (
         <>

@@ -14,6 +14,7 @@ const NavBar = () => {
             <Link to="/moist" className='font-semibold mb-4 flex items-center md:gap-2'><HiExternalLink /> Moisture</Link>
             <Link to="/tds" className='font-semibold mb-4 flex items-center md:gap-2'><HiExternalLink /> TDS</Link>
             <Link to="/ph" className='font-semibold mb-4 flex items-center md:gap-2'><HiExternalLink /> PH Level</Link>
+            <Link to="/dashboard" className='font-semibold mb-4 flex items-center md:gap-2'><HiExternalLink /> Dashboard</Link>
             <Link to="/history" className='font-semibold mb-4 flex items-center md:gap-2'><HiExternalLink /> History</Link>
         </div>
     </div>

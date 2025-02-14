@@ -4,6 +4,7 @@ import LightControl from './components/LightControl'
 import MoistureSensor from './components/MoistureSensor'
 import Temperature from './components/Temperature'
 import TDS from './components/TDS'
+import Dashboard from './components/Dashboard'
 const Layout = () => {
   return (
     <>
@@ -12,6 +13,7 @@ const Layout = () => {
         <MoistureSensor/>
         <Temperature/>
         <TDS/>
+        <Dashboard/>
     </>
   )
 }

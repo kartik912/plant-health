@@ -11,6 +11,7 @@ import NavBar from "./components/NavBar";
 import Layout from "./Layout";
 import History from "./pages/History";
 import PHSensor from "./components/PhSensor";
+import Dashboard from "./components/Dashboard";
 
 const SensorDashboard = () => {
   
@@ -46,6 +47,7 @@ const SensorDashboard = () => {
           <Route path="/temp" element={<Temperature/>}/>
           <Route path="/tds" element={<TDS/>}/>
           <Route path="/ph" element={<PHSensor/>}/>
+          <Route path="/dashboard" element={<Dashboard/>}/>
         </Routes>
       </div>
     </div>
