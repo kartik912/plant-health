@@ -67,7 +67,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col items-center p-6">
-      <h1 className="text-2xl font-bold mb-4">Sensor Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-4">Sensor Dashboard</h1>
 
       {/* Gauges for Moisture, Temperature, Humidity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

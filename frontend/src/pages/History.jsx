@@ -186,7 +186,7 @@ const History = () => {
   console.log(phData)
   
   return (
-      <div className="History panel overflow-hidden w-[90%] max-h-[80%] mt-20 md:mt-0 flex items-center flex-col">
+      <div className="History panel overflow-hidden w-[90%] max-h-[90vh] mt-20 md:mt-0 flex items-center flex-col">
         <h2 className="panel-title">History</h2>
         <button onClick={downloadPDF} className="button download-button mx-3 mb-4">
           Download PDF

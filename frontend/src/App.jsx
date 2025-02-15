@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import io from 'socket.io-client/dist/socket.io.js';
 import "./SensorDashboard.css";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import PlantCamera from "./components/PlantCamera";
 import LightControl from "./components/LightControl";
 import MoistureSensor from "./components/MoistureSensor";
@@ -36,11 +36,12 @@ const SensorDashboard = () => {
 
   return (
     <>
-    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh] md:h-[100vh] gap-4 md:gap-0 bg-[#A0C878]">
+    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh]  gap-4 md:gap-0 bg-[#A0C878]">
       <NavBar/>
       <div className="flex justify-center md:items-center">
         <Routes>
-          <Route path="/" element={<PlantCamera/>}/>
+          <Route path="/" element={<Navigate to="dashboard"/>}/>
+          <Route path="/camera" element={<PlantCamera/>}/>
           <Route path="/history" element={<History/>}/>
           <Route path="/light" element={<LightControl/>}/>
           <Route path="/moist" element={<MoistureSensor/>}/>
@@ -48,6 +49,7 @@ const SensorDashboard = () => {
           <Route path="/tds" element={<TDS/>}/>
           <Route path="/ph" element={<PHSensor/>}/>
           <Route path="/dashboard" element={<Dashboard/>}/>
+          <Route path="/*" element={<Navigate to="/dashboard"/>}/>
         </Routes>
       </div>
     </div>
