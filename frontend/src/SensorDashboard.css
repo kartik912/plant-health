@@ -3,60 +3,60 @@
   margin: 0 auto;
   padding: 20px;
 } */
-
 .button.download-button {
   padding: 0.5rem 1.5rem;
-  background-color: #28a745;
-  color: #fff;
+  background-color: #697565;
+  color: #ECDFCC;
   border: none;
   border-radius: 5px;
+  transition: background-color 0.3s ease;
 }
 
 .button.download-button:hover {
-  background-color: #218838;
+  background-color: #3C3D37;
 }
-
 
 .title {
   text-align: center;
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 20px;
+  color: #ECDFCC;
 }
 
-
 .panel {
-  background: #fff;
+  background: #181C14;
   border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border: 1px solid #3C3D37;
 }
 
 .panel-title {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 20px;
+  color: #ECDFCC;
 }
 
-
 .status-indicator.off {
-  background: #DC2F2F;
+  background: #3C3D37;
 }
 
 .status-indicator.on {
-  background: rgb(3, 85, 7);
+  background: #697565;
 }
 
 .status-indicator.dry {
-  background: rgb(231, 231, 73);
+  background: #3C3D37;
 }
 
 .status-indicator.moist {
-  background: rgb(69, 228, 109);
+  background: #697565;
 }
 
 .status-indicator.wet {
-  background: rgb(3, 255, 15);
+  background: #ECDFCC;
 }
 
 .button {
@@ -64,30 +64,24 @@
   border: none;
   border-radius: 5px;
   font-size: 1rem;
-  color: white;
+  color: #ECDFCC;
   cursor: pointer;
-  /* border-radius: 50%; */
+  transition: background-color 0.3s ease;
 }
-.button.stop-button {
-  background-color: #e41212;
-}
-.button.start-stream {
-  background-color: #e41212;
-}
+
+.button.stop-button,
+.button.start-stream,
 .button.stop-stream {
-  background-color: #e41212;
+  background-color: #3C3D37;
 }
 
-.button.capture-button{
-  background-color: #19A7CE;
-}
-
+.button.capture-button,
 .toggle-button {
-  background: #19A7CE;
+  background-color: #697565;
 }
 
 .clear-button {
-  background: #F26B0F;
+  background-color: #3C3D37;
 }
 
 .hist ul {
@@ -97,6 +91,14 @@
 
 .hist li {
   font-size: 0.9rem;
-  color: gray;
+  color: #ECDFCC;
   margin-bottom: 10px;
+}
+
+.gauge {
+  background: #181C14;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border: 1px solid #3C3D37;
 }

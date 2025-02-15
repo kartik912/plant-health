@@ -106,14 +106,14 @@ const Dashboard = () => {
       <h1 className="text-3xl font-bold mb-4">Sensor Dashboard</h1>
       
       {/* First Row: PH, Humidity, and Temperature Gauges */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="gauge grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Gauge value={currentPH} />
         <HumidityGauge value={currentHumidity} />
         <TemperatureGauge value={currentTemperature} />
       </div>
 
       {/* Combined Graph for PH, Humidity, and Temperature */}
-      <div className="w-full mb-8">
+      <div className="panel w-full mb-8">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={sensorData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -122,20 +122,20 @@ const Dashboard = () => {
             <Tooltip />
             <Legend />
             <Line type="monotone" dataKey="ph" stroke="#FF6384" name="pH Level" />
-            <Line type="monotone" dataKey="humidity" stroke="#33FF57" name="Humidity" />
+            <Line type="monotone" dataKey="humidity" stroke="#FFFFFF" name="Humidity" />
             <Line type="monotone" dataKey="temperature" stroke="#FF5733" name="Temperature" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Second Row: TDS and Soil Moisture Gauges */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="gauge grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <TDSGauge value={currentTDS} />
         <MoistureGauge value={currentMoisture.level} />
       </div>
 
       {/* Combined Graph for TDS and Soil Moisture */}
-      <div className="w-full">
+      <div className="panel w-full">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={sensorData}>
             <CartesianGrid strokeDasharray="3 3" />

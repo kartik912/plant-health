@@ -36,7 +36,7 @@ const SensorDashboard = () => {
 
   return (
     <>
-    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh]  gap-4 md:gap-0 bg-[#A0C878]">
+    <div className="relative grid grid-rows-[max-content_1fr] md:grid-rows-1 md:grid-cols-[max-content_1fr] min-h-[100vh]  gap-4 md:gap-0 bg-[#1E3E62]">
       <NavBar/>
       <div className="flex justify-center md:items-center">
         <Routes>
