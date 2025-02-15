@@ -23,117 +23,81 @@ const Dashboard = () => {
   const [currentPH, setCurrentPH] = useState(0);
   const [currentTDS, setCurrentTDS] = useState(0);
 
-  // Historical data
+  // Historical data for all sensors
   const [sensorData, setSensorData] = useState([]);
-  const [phTdsData, setPhTdsData] = useState([]);
 
-  // Fetch temperature, humidity, and moisture data
+  // Fetch all sensor data
   useEffect(() => {
-    const fetchSensorData = async () => {
+    const fetchAllSensorData = async () => {
       try {
-        const [tempHumCurrentRes, tempHumHistoryRes, moistureHistoryRes] = await Promise.all([
+        const [tempHumRes, moistureRes, phRes, tdsRes] = await Promise.all([
           fetch("http://127.0.0.1:5000/get_temperature_humidity"),
-          fetch("http://127.0.0.1:5000/get_temperature_humidity_history"),
-          fetch("http://127.0.0.1:5000/get_moisture_data")
+          fetch("http://127.0.0.1:5000/check_moisture"),
+          fetch("http://127.0.0.1:5000/get_ph"),
+          fetch("http://127.0.0.1:5000/get_tds")
         ]);
 
-        const tempHumCurrent = await tempHumCurrentRes.json();
+        const tempHumData = await tempHumRes.json();
+        const moistureData = await moistureRes.json();
+        const phData = await phRes.json();
+        const tdsData = await tdsRes.json();
+
+        setCurrentTemperature(tempHumData.temperature);
+        setCurrentHumidity(tempHumData.humidity);
+        setCurrentMoisture({
+          level: moistureData.moisture_level,
+          state: moistureData.state
+        });
+        setCurrentPH(phData.ph_value);
+        setCurrentTDS(tdsData.tds_value);
+      } catch (error) {
+        console.error("Error fetching current sensor data:", error);
+      }
+    };
+
+    // Fetch historical data
+    const fetchHistoricalData = async () => {
+      try {
+        const [tempHumHistoryRes, moistureHistoryRes, phHistoryRes, tdsHistoryRes] = await Promise.all([
+          fetch("http://127.0.0.1:5000/get_temperature_humidity_history"),
+          fetch("http://127.0.0.1:5000/get_moisture_data"),
+          fetch("http://127.0.0.1:5000/get_ph_history"),
+          fetch("http://127.0.0.1:5000/get_tds_history")
+        ]);
+
         const tempHumHistory = await tempHumHistoryRes.json();
         const moistureHistory = await moistureHistoryRes.json();
+        const phHistory = await phHistoryRes.json();
+        const tdsHistory = await tdsHistoryRes.json();
 
-        // Update current values
-        setCurrentTemperature(tempHumCurrent.temperature);
-        setCurrentHumidity(tempHumCurrent.humidity);
-
-        // Merge historical data
+        // Merge all historical data
         const mergedData = tempHumHistory.temperature_humidity_data.map((item, index) => {
           const moistureItem = moistureHistory.moisture_data[index] || {};
+          const phItem = phHistory.ph_data[index] || {};
+          const tdsItem = tdsHistory.tds_data[index] || {};
+          
           return {
             time: new Date(item.date).toLocaleTimeString(),
             temperature: parseFloat(item.temperature),
             humidity: parseFloat(item.humidity),
-            moisture: moistureItem.moisture_level ? parseFloat(moistureItem.moisture_level) : null
+            ph: phItem.ph_value ? parseFloat(phItem.ph_value) : null,
+            moisture: moistureItem.moisture_level ? parseFloat(moistureItem.moisture_level) : null,
+            tds: tdsItem.tds_value ? parseFloat(tdsItem.tds_value) : null
           };
         });
 
         setSensorData(mergedData);
       } catch (error) {
-        console.error("Error fetching sensor data:", error);
+        console.error("Error fetching historical data:", error);
       }
     };
 
-    fetchSensorData();
-    const interval = setInterval(fetchSensorData, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch moisture current data
-  useEffect(() => {
-    const fetchCurrentMoisture = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/check_moisture");
-        const data = await response.json();
-        setCurrentMoisture({
-          level: data.moisture_level,
-          state: data.state
-        });
-      } catch (error) {
-        console.error("Error fetching current moisture:", error);
-      }
-    };
-
-    fetchCurrentMoisture();
-    const interval = setInterval(fetchCurrentMoisture, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch PH and TDS data
-  useEffect(() => {
-    const fetchPhTdsData = async () => {
-      try {
-        const [phCurrentRes, tdsCurrentRes, tdsHistoryRes, phHistoryRes] = await Promise.all([
-          fetch("http://127.0.0.1:5000/get_ph"),
-          fetch("http://127.0.0.1:5000/get_tds"),
-          fetch("http://127.0.0.1:5000/get_tds_history"),
-          fetch("http://127.0.0.1:5000/get_ph_history")
-        ]);
-
-        const phcurrentData = await phCurrentRes.json();
-        const tdsCurrentData = await tdsCurrentRes.json();
-        const tdsHistoryData = await tdsHistoryRes.json();
-        const phHistoryData = await phHistoryRes.json();
-
-        // Update current values
-        setCurrentTDS(tdsCurrentData.tds_value);
-        
-        // Create arrays of the same length for proper data alignment
-        const maxLength = Math.max(tdsHistoryData.tds_data.length, phHistoryData.ph_data.length);
-        const mergedData = [];
-
-        for (let i = 0; i < maxLength; i++) {
-          const tdsItem = tdsHistoryData.tds_data[i] || {};
-          const phItem = phHistoryData.ph_data[i] || {};
-          
-          mergedData.push({
-            time: new Date(tdsItem.date || phItem.timestamp).toLocaleTimeString(),
-            tds: tdsItem.tds_value ? parseFloat(tdsItem.tds_value) : null,
-            ph: phItem.ph_value ? parseFloat(phItem.ph_value) : null
-          });
-        }
-
-        setPhTdsData(mergedData);
-
-        // Update current PH from the latest reading
-        if (phHistoryData.ph_data.length > 0) {
-          setCurrentPH(parseFloat(phHistoryData.ph_data[phHistoryData.ph_data.length - 1].ph_value));
-        }
-      } catch (error) {
-        console.error("Error fetching PH and TDS data:", error);
-      }
-    };
-
-    fetchPhTdsData();
-    const interval = setInterval(fetchPhTdsData, 10000);
+    fetchAllSensorData();
+    fetchHistoricalData();
+    const interval = setInterval(() => {
+      fetchAllSensorData();
+      fetchHistoricalData();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -141,45 +105,49 @@ const Dashboard = () => {
     <div className="flex flex-col items-center p-6">
       <h1 className="text-3xl font-bold mb-4">Sensor Dashboard</h1>
       
-      {/* Gauges */}
+      {/* First Row: PH, Humidity, and Temperature Gauges */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <MoistureGauge value={currentMoisture.level} />
-        <TemperatureGauge value={currentTemperature} />
+        <Gauge value={currentPH} />
         <HumidityGauge value={currentHumidity} />
+        <TemperatureGauge value={currentTemperature} />
       </div>
 
-      {/* Temperature, Humidity, and Moisture Chart */}
-      <ResponsiveContainer width="90%" height={300}>
-        <LineChart data={sensorData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Line type="monotone" dataKey="temperature" stroke="#FF5733" name="Temperature" />
-          <Line type="monotone" dataKey="humidity" stroke="#33FF57" name="Humidity" />
-          <Line type="monotone" dataKey="moisture" stroke="#337BFF" name="Moisture Level" />
-        </LineChart>
-      </ResponsiveContainer>
+      {/* Combined Graph for PH, Humidity, and Temperature */}
+      <div className="w-full mb-8">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={sensorData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="ph" stroke="#FF6384" name="pH Level" />
+            <Line type="monotone" dataKey="humidity" stroke="#33FF57" name="Humidity" />
+            <Line type="monotone" dataKey="temperature" stroke="#FF5733" name="Temperature" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-      {/* PH and TDS Gauges */}
+      {/* Second Row: TDS and Soil Moisture Gauges */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <TDSGauge value={currentTDS} />
-        <Gauge value={currentPH} />
+        <MoistureGauge value={currentMoisture.level} />
       </div>
 
-      {/* PH and TDS Chart */}
-      <ResponsiveContainer width="90%" height={300}>
-        <LineChart data={phTdsData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Line type="monotone" dataKey="tds" stroke="#FFAC33" name="TDS" />
-          <Line type="monotone" dataKey="ph" stroke="#FF6384" name="pH Level" />
-        </LineChart>
-      </ResponsiveContainer>
+      {/* Combined Graph for TDS and Soil Moisture */}
+      <div className="w-full">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={sensorData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="tds" stroke="#FFAC33" name="TDS" />
+            <Line type="monotone" dataKey="moisture" stroke="#337BFF" name="Soil Moisture" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

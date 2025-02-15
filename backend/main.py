@@ -216,9 +216,10 @@ def get_ph():
     try:
         raw_voltage = adc.read_voltage(4)
         voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
+        ph_val = 7 + ((2.5 - voltage) / 0.18)
 
         # Store in database
-        new_data = PHData(ph_value=voltage)
+        new_data = PHData(ph_value=ph_val)
         db.session.add(new_data)
         db.session.commit()
 
