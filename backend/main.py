@@ -6,35 +6,35 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from config import app, db
 from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData
-# from gpiozero import OutputDevice
-# from grove.grove_moisture_sensor import GroveMoistureSensor
+from gpiozero import OutputDevice
+from grove.grove_moisture_sensor import GroveMoistureSensor
 # from gpiozero import Servo
 from time import sleep
 import time
-# from grove.adc import ADC
-# import adafruit_dht
-# import board
+from grove.adc import ADC
+import adafruit_dht
+import board
 import os
 
 import math
 import sys
 
-# adc = ADC()
-# class GroveTDS:
-#     def __init__(self, channel):
-#         self.channel = channel
-#         self.adc = ADC()
+adc = ADC()
+class GroveTDS:
+    def __init__(self, channel):
+        self.channel = channel
+        self.adc = ADC()
 
-#     @property
-#     def TDS(self):
-#         value = self.adc.read(self.channel)
-#         if value != 0:
-#             voltage = value * 5 / 1024.0
-#             tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
-#             return tds_value
-#         return 0
+    @property
+    def TDS(self):
+        value = self.adc.read(self.channel)
+        if value != 0:
+            voltage = value * 5 / 1024.0
+            tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
+            return tds_value
+        return 0
 
-# tdssensor = GroveTDS(2)
+tdssensor = GroveTDS(2)
 
 # from sqlalchemy import inspect
 # @app.route("/get_table_columns", methods=["GET"])
@@ -49,86 +49,86 @@ import sys
 #     except Exception as e:
 #         return jsonify({"message": str(e)}), 400
 
-#camera
-# from flask import Flask, Response
-# from flask_socketio import SocketIO
-# from picamera2 import Picamera2,Preview
-# import io
-# import threading
-# import base64
+# camera
+from flask import Flask, Response
+from flask_socketio import SocketIO
+from picamera2 import Picamera2,Preview
+import io
+import threading
+import base64
 
 #live feed
 
-# socketio = SocketIO(app, cors_allowed_origins="*")
-# is_streaming = False
-# camera_thread = None
+socketio = SocketIO(app, cors_allowed_origins="*")
+is_streaming = False
+camera_thread = None
 
-# global_camera = None
-# camera_lock = threading.Lock()
+global_camera = None
+camera_lock = threading.Lock()
 
-# def initialize_camera():
-#     global global_camera
-#     with camera_lock:
-#         if global_camera is not None:
-#             try:
-#                 global_camera.close()
-#             except:
-#                 pass
+def initialize_camera():
+    global global_camera
+    with camera_lock:
+        if global_camera is not None:
+            try:
+                global_camera.close()
+            except:
+                pass
         
-#         global_camera = Picamera2()
-#         global_camera.start()
-#     return global_camera
+        global_camera = Picamera2()
+        global_camera.start()
+    return global_camera
 
-# def generate_frames():
-#     global is_streaming, global_camera
+def generate_frames():
+    global is_streaming, global_camera
     
-#     try:
-#         camera = initialize_camera()
+    try:
+        camera = initialize_camera()
         
-#         while is_streaming:
-#             # Capture frame
-#             frame = camera.capture_image()
+        while is_streaming:
+            # Capture frame
+            frame = camera.capture_image()
             
-#             # Convert frame to JPEG
-#             buffer = io.BytesIO()
-#             frame.save(buffer, format="JPEG")
-#             frame_bytes = buffer.getvalue()
+            # Convert frame to JPEG
+            buffer = io.BytesIO()
+            frame.save(buffer, format="JPEG")
+            frame_bytes = buffer.getvalue()
             
-#             # Encode frame to base64
-#             encoded_frame = base64.b64encode(frame_bytes).decode('utf-8')
+            # Encode frame to base64
+            encoded_frame = base64.b64encode(frame_bytes).decode('utf-8')
             
-#             # Emit frame via WebSocket
-#             socketio.emit('camera_frame', {'image': encoded_frame})
+            # Emit frame via WebSocket
+            socketio.emit('camera_frame', {'image': encoded_frame})
             
-#             socketio.sleep(0.1)  # Adjust frame rate
-#     except Exception as e:
-#         print(f"Streaming error: {e}")
-#     finally:
-#         with camera_lock:
-#             if global_camera is not None:
-#                 global_camera.close()
-#                 global_camera = None
+            socketio.sleep(0.1)  # Adjust frame rate
+    except Exception as e:
+        print(f"Streaming error: {e}")
+    finally:
+        with camera_lock:
+            if global_camera is not None:
+                global_camera.close()
+                global_camera = None
 
 #photo capture
 
-# PHOTO_DIRECTORY = "captured_photos"
-# os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
+PHOTO_DIRECTORY = "captured_photos"
+os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
 
-# RELAY_PIN = 16
-# relay = OutputDevice(RELAY_PIN)
+RELAY_PIN = 16
+relay = OutputDevice(RELAY_PIN)
 
 # #temperature and humidity sensor
-# dht_sensor = adafruit_dht.DHT11(board.D5)
+dht_sensor = adafruit_dht.DHT11(board.D5)
 
 # # Moisture sensor setup
-# sensor = GroveMoistureSensor(0)
+sensor = GroveMoistureSensor(0)
 
 # #servo setup
 # servo = Servo(12)
 
 # # Moisture state tracking
-# last_dry_state = False
-# last_wet_state = False
+last_dry_state = False
+last_wet_state = False
 
 # @app.route("/start_stream", methods=["POST"])
 # def start_stream():
@@ -211,20 +211,20 @@ def get_photo_records():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-# @app.route("/get_ph", methods=["GET"])
-# def get_ph():
-#     try:
-#         raw_voltage = adc.read_voltage(4)
-#         voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
+@app.route("/get_ph", methods=["GET"])
+def get_ph():
+    try:
+        raw_voltage = adc.read_voltage(4)
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
 
-#         # Store in database
-#         new_data = PHData(ph_value=voltage)
-#         db.session.add(new_data)
-#         db.session.commit()
+        # Store in database
+        new_data = PHData(ph_value=voltage)
+        db.session.add(new_data)
+        db.session.commit()
 
-#         return jsonify({"voltage": voltage}), 200
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
+        return jsonify({"voltage": voltage}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 @app.route("/get_ph_history", methods=["GET"])
 def get_ph_history():
@@ -287,19 +287,19 @@ def delete_temperature_humidity_data():
         return jsonify({"message": str(e)}), 400
 
 
-# @app.route("/get_tds", methods=["GET"])
-# def get_tds():
-#     try:
-#         tds_value = tdssensor.TDS
-#         if tds_value:
-#             new_data = TDSData(tds_value=tds_value)
-#             db.session.add(new_data)
-#             db.session.commit()
-#             return jsonify({"tds_value": tds_value}), 200
-#         else:
-#             return jsonify({"message": "Failed to read TDS sensor data"}), 400
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
+@app.route("/get_tds", methods=["GET"])
+def get_tds():
+    try:
+        tds_value = tdssensor.TDS
+        if tds_value:
+            new_data = TDSData(tds_value=tds_value)
+            db.session.add(new_data)
+            db.session.commit()
+            return jsonify({"tds_value": tds_value}), 200
+        else:
+            return jsonify({"message": "Failed to read TDS sensor data"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 @app.route("/get_tds_history", methods=["GET"])
 def get_tds_history():
@@ -393,49 +393,49 @@ def get_moisture_data():
         return jsonify({"message": str(e)}), 400
     return jsonify({"moisture_data": results}), 200
 
-# @app.route("/check_moisture", methods=["GET"])
-# def check_moisture():
-#     global last_dry_state, last_wet_state
-#     mois = sensor.moisture
-#     if 0 <= mois < 300:
-#         state = "dry"
-#         if not last_dry_state:
-#             # Store data only when first reaching dry state
-#             new_data = MoistureSensorData(moisture_level=mois, state=state)
-#             db.session.add(new_data)
-#             db.session.commit()
-#             last_dry_state = True
-#             last_wet_state = False
-#             servo.min()
-#             # Set motor to 90 degrees for dry state
-#             # set_angle(90)
-#         else:
-#             return jsonify({"message": "Already in dry state."}), 200
-#     elif 300 <= mois < 600:
-#         state = "moist"
-#     else:
-#         state = "wet"
-#         if not last_wet_state:
-#             # Store data only when first reaching wet state
-#             new_data = MoistureSensorData(moisture_level=mois, state=state)
-#             db.session.add(new_data)
-#             db.session.commit()
-#             last_wet_state = True
-#             last_dry_state = False
-#             servo.max()
-#             # Set motor to 0 degrees for wet state
-#             # set_angle(0)
+@app.route("/check_moisture", methods=["GET"])
+def check_moisture():
+    global last_dry_state, last_wet_state
+    mois = sensor.moisture
+    if 0 <= mois < 300:
+        state = "dry"
+        if not last_dry_state:
+            # Store data only when first reaching dry state
+            new_data = MoistureSensorData(moisture_level=mois, state=state)
+            db.session.add(new_data)
+            db.session.commit()
+            last_dry_state = True
+            last_wet_state = False
+            servo.min()
+            # Set motor to 90 degrees for dry state
+            # set_angle(90)
+        else:
+            return jsonify({"message": "Already in dry state."}), 200
+    elif 300 <= mois < 600:
+        state = "moist"
+    else:
+        state = "wet"
+        if not last_wet_state:
+            # Store data only when first reaching wet state
+            new_data = MoistureSensorData(moisture_level=mois, state=state)
+            db.session.add(new_data)
+            db.session.commit()
+            last_wet_state = True
+            last_dry_state = False
+            servo.max()
+            # Set motor to 0 degrees for wet state
+            # set_angle(0)
 
-#     return jsonify({"moisture_level": mois, "state": state}), 200
+    return jsonify({"moisture_level": mois, "state": state}), 200
 
-# @app.route("/delete_moisture_data", methods=["POST"])
-# def delete_moisture_data():
-#     try:
-#         MoistureSensorData.query.delete()
-#         db.session.commit()
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
-#     return jsonify({"message": "All moisture data deleted successfully!"}), 200
+@app.route("/delete_moisture_data", methods=["POST"])
+def delete_moisture_data():
+    try:
+        MoistureSensorData.query.delete()
+        db.session.commit()
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    return jsonify({"message": "All moisture data deleted successfully!"}), 200
 
 @app.route("/get_contacts", methods=["GET"])
 def get_contacts():
