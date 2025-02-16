@@ -30,7 +30,7 @@ class GroveTDS:
         value = self.adc.read(self.channel)
         if value != 0:
             voltage = value * 5 / 1024.0
-            tds_value = (133.42 * voltage**3 - 255.86 * voltage**2 + 857.39 * voltage) * 0.5
+            tds_value = (133.42 * voltage**3 - 1566.86 * voltage**2 + 857.39 * voltage) * 0.5
             return tds_value
         return 0
 
@@ -215,7 +215,7 @@ def get_photo_records():
 def get_ph():
     try:
         raw_voltage = adc.read_voltage(4)
-        voltage = (raw_voltage * 5.0 / 4095.0) - 0.95  # Adjusted voltage calculation
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage calculation
         ph_val = 7 + ((2.5 - voltage) / 0.18)
 
         # Store in database
