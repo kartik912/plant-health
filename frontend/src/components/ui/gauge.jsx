@@ -1,29 +1,35 @@
 import React from "react";
 import GaugeChart from "react-gauge-chart";
 
-const Gauge = ({ value = 7 }) => {
+const Gauge = ({ value, time }) => {
+  const normalizedValue = Math.min(Math.max(Number(value) || 0, 0), 14);
+  const percentValue = normalizedValue / 14;
+
   return (
-    <div className="flex flex-col items-center relative">
-      {/* Title */}
-      <h2 className="text-lg font-semibold mb-2">Water pH</h2>
-      
-      {/* Gauge Chart */}
-      <div className="relative">
+    <div className="w-full h-full p-4 rounded-lg bg-gradient-to-r from-teal-700 to-blue-900 flex flex-col">
+      <h2 className="text-lg font-bold text-white mb-4">Water pH</h2>
+      <div className="flex-1 flex flex-col items-center justify-center relative">
         <GaugeChart
           id="ph-gauge"
           nrOfLevels={20}
-          arcsLength={[0.2, 0.6, 0.2]} // Define color segments
-          colors={["red", "green", "red"]} // Red for acidic, green for neutral, red for alkaline
-          percent={value / 14} // Normalize value to range 0-1
+          arcsLength={[5 / 14, 2.5 / 14, 6.5 / 14]}
+          colors={["red", "green", "red"]}
+          percent={percentValue}
+          arcWidth={0.1}
           arcPadding={0.02}
-          textColor="#000"
-          formatTextValue={(val) => val.toFixed(1)}
+          needleColor="white"
+          needleBaseColor="black"
+          textColor="transparent"
+          formatTextValue={() => ""}
+          style={{ width: "150px" }}
         />
-
-        {/* Labels */}
-        <div className="absolute top-[75%] left-0 text-sm font-medium">0</div>
-        <div className="absolute top-[-10%] left-[47%] text-sm font-medium">7</div>
-        <div className="absolute top-[75%] right-0 text-sm font-medium">14</div>
+        <div className="absolute top-1/2 left-1/4 text-xs text-white">0</div>
+        <div className="absolute top-0 left-1/4 text-xs text-white">5</div>
+        <div className="absolute -top-2 left-1/2 text-xs text-white">7.5</div>
+        <div className="absolute bottom-0 right-0 text-xs text-white">14</div>
+        <div className="mt-4 text-white text-sm text-center">
+          <p>{normalizedValue.toFixed(1)} / {time}</p>
+        </div>
       </div>
     </div>
   );

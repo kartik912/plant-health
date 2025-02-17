@@ -223,7 +223,7 @@ def get_ph():
         db.session.add(new_data)
         db.session.commit()
 
-        return jsonify({"voltage": voltage}), 200
+        return jsonify({"ph_value": ph_val}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
