@@ -6,31 +6,50 @@ const TemperatureGauge = ({ value, time }) => {
   const percentValue = normalizedValue / 100;
 
   return (
-    <div className="w-full h-full p-4 rounded-lg bg-gradient-to-r from-teal-700 to-blue-900 flex flex-col">
-      <h2 className="text-lg font-bold text-white mb-4">Temperature</h2>
-      <div className="flex-1 flex flex-col items-center justify-center relative">
-        <GaugeChart
-          id="ph-gauge"
-          nrOfLevels={20}
-          arcsLength={[5 / 14, 2.5 / 14, 6.5 / 14]}
-          colors={["red", "green", "red"]}
-          percent={percentValue}
-          arcWidth={0.1}
-          arcPadding={0.02}
-          needleColor="white"
-          needleBaseColor="black"
-          textColor="transparent"
-          formatTextValue={() => ""}
-          style={{ width: "150px" }}
-        />
-        <div className="absolute top-[47%] left-1/4 text-xs text-white">0</div>
-        <div className="absolute top-[-10%] left-[39%] text-xs text-white">5</div>
-        <div className="absolute -top-[15%] left-1/2 text-xs text-white">7.5</div>
-        <div className="absolute top-[47%] right-[25%] text-xs text-white">14</div>
-        <div className="mt-2 text-white text-sm text-center">
-          <p>{normalizedValue.toFixed(1)}C / {time}</p>
+    <div className="w-full h-full p-6 rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 flex flex-col shadow-lg">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-white">Temperature</h2>
+        <div className="px-3 py-1 bg-slate-700/50 rounded-full">
+          <span className="text-sm text-emerald-400 font-medium">{time}</span>
         </div>
       </div>
+      
+      <div className="flex-1 flex flex-col items-center justify-center relative">
+        <div className="relative w-48">
+          <GaugeChart
+            id="temperature-gauge"
+            nrOfLevels={20}
+            arcsLength={[20 / 100, 10 / 100, 30/100, 40 / 100]}
+            colors={["#0066FF", "#00FF44", "#FFD700", "#FF0F0F"]}
+            percent={percentValue}
+            arcWidth={0.12}
+            arcPadding={0.02}
+            needleColor="#E2E8F0"
+            needleBaseColor="#475569"
+            textColor="transparent"
+            formatTextValue={() => ""}
+            cornerRadius={5}
+          />
+        </div>
+
+        {/* Scale markers with improved styling */}
+        <div className="w-full relative mt-2">
+          <div className="absolute left-6 -top-20 text-slate-400 text-xs">0</div>
+          <div className="absolute left-[20%] -top-28 text-slate-400 text-xs">20</div>
+          <div className="absolute left-[30%] -top-32 transform -translate-x-1/2 text-slate-400 text-xs">30</div>
+          <div className="absolute left-[60%] -top-32 transform -translate-x-1/2 text-slate-400 text-xs">60</div>
+          <div className="absolute right-6 -top-20 text-slate-400 text-xs">100</div>
+        </div>
+
+        {/* Value display below gauge */}
+        <div className="mt-6 text-center bg-slate-700/30 px-6 py-3 rounded-lg">
+          <span className="text-2xl font-bold text-white">{normalizedValue.toFixed(1)}</span>
+          <span className="text-lg text-slate-400 ml-2">°C</span>
+        </div>
+      </div>
+
+      {/* Added subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent rounded-xl pointer-events-none" />
     </div>
   );
 };
