@@ -1,22 +1,17 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { capitalizeFirstLetter } from '../hooks/capitalize';
 
 const History = () => {
-
-  
   const [temperatureHumidityData, setTemperatureHumidityData] = useState([]);
   const [moistureData, setMoistureData] = useState([]);
   const [tdsData, setTdsData] = useState([]);
   const [phData, setPHData] = useState([]);
-          
   
   const deleteTemperatureHumidityHistory = async () => {
     try {
       const response = await fetch(
         "http://127.0.0.1:5000/delete_temperature_humidity_data",
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
       if (response.ok) {
         setTemperatureHumidityData([]);
@@ -30,9 +25,7 @@ const History = () => {
     try {
       const response = await fetch(
         "http://127.0.0.1:5000/delete_moisture_data",
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
       if (response.ok) {
         setMoistureData([]);
@@ -43,84 +36,85 @@ const History = () => {
   };
 
   const deleteTDSHistory = async () => {
-      try {
-          const response = await fetch("http://127.0.0.1:5000/delete_tds_data", {
-              method: "POST"
-          });
-          if (response.ok) {
-              setTdsData([]);
-          }
-      } catch (error) {
-          console.error("Error clearing TDS history:", error);
-      }
-  };
-
-  const deletePHHistory = async () => {
-      try {
-          const response = await fetch("http://127.0.0.1:5000/delete_ph_data", {
-              method: "POST"
-          });
-          if (response.ok) {
-              setPHData([]);
-          }
-      } catch (error) {
-          console.error("Error clearing PH history:", error);
-      }
-  };
-
-
-  
-  const downloadPDF = async () => {
     try {
-        const response = await fetch("http://127.0.0.1:5000/download_database_pdf");
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'PlantCareDashboard.pdf'; // Set the desired file name
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url); // Clean up the URL object
-        } else {
-            console.error("Failed to fetch database PDF:", response.statusText);
-        }
+      const response = await fetch(
+        "http://127.0.0.1:5000/delete_tds_data",
+        { method: "POST" }
+      );
+      if (response.ok) {
+        setTdsData([]);
+      }
     } catch (error) {
-        console.error("Error downloading database PDF:", error);
+      console.error("Error clearing TDS history:", error);
     }
   };
 
+  const deletePHHistory = async () => {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:5000/delete_ph_data",
+        { method: "POST" }
+      );
+      if (response.ok) {
+        setPHData([]);
+      }
+    } catch (error) {
+      console.error("Error clearing PH history:", error);
+    }
+  };
   
-
+  const downloadPDF = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/download_database_pdf");
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'PlantCareDashboard.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        console.error("Failed to fetch database PDF:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error downloading database PDF:", error);
+    }
+  };
   
   useEffect(() => {
     const fetchTemperatureHumidityData = async () => {
       try {
-
-        // Fetch temperature and humidity history
         const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
         const historyData = await historyResponse.json();
         
         const formattedData = historyData.temperature_humidity_data.map((item) => ({
           time: new Date(item.date).toLocaleTimeString(),
+          date: new Date(item.date), // Keep the date object for sorting
           temperature: parseFloat(item.temperature),
           humidity: parseFloat(item.humidity)
         }));
         
-        setTemperatureHumidityData(formattedData);
+        // Sort by date descending (newest first) and take only top 10
+        const sortedData = formattedData
+          .sort((a, b) => b.date - a.date)
+          .slice(0, 10)
+          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
+        
+        setTemperatureHumidityData(sortedData);
       } catch (error) {
         console.error("Error fetching temperature and humidity data:", error);
       }
     };
   
-    fetchTemperatureHumidityData(); // Fetch data initially
-    const interval = setInterval(fetchTemperatureHumidityData, 10000); // Fetch every 10 min
+    fetchTemperatureHumidityData();
+    const interval = setInterval(fetchTemperatureHumidityData, 10000);
   
-    return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
 
-  
   useEffect(() => {
     const fetchMoistureData = async () => {
       try {
@@ -128,166 +122,238 @@ const History = () => {
         const data = await response.json();
         const formattedData = data.moisture_data.map((item) => ({
           time: new Date(item.date).toLocaleTimeString(),
+          date: new Date(item.date), // Keep the date object for sorting
           level: parseFloat(item.moisture_level),
           state: item.state,
         }));
-        setMoistureData(formattedData);
+        
+        // Sort by date descending (newest first) and take only top 10
+        const sortedData = formattedData
+          .sort((a, b) => b.date - a.date)
+          .slice(0, 10)
+          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
+        
+        setMoistureData(sortedData);
       } catch (error) {
         console.error("Error fetching moisture data:", error);
       }
     };
   
-    fetchMoistureData(); // Fetch data initially
-    const interval = setInterval(fetchMoistureData, 10000); // Fetch every 10 min
+    fetchMoistureData();
+    const interval = setInterval(fetchMoistureData, 10000);
   
-    return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
-  
   
   useEffect(() => {
-      const fetchTDSData = async () => {
-        try {
-            const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
-            const historyData = await historyResponse.json();
-            const formattedData = historyData.tds_data.map(item => ({
-                time: new Date(item.date).toLocaleTimeString(),
-                tds_value: parseFloat(item.tds_value)
-            }));
-            setTdsData(formattedData);
-        } catch (error) {
-            console.error("Error fetching TDS data:", error);
-        }
-      };
-      fetchTDSData();
-      const interval = setInterval(fetchTDSData, 10000);
-      return () => clearInterval(interval);
+    const fetchTDSData = async () => {
+      try {
+        const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
+        const historyData = await historyResponse.json();
+        const formattedData = historyData.tds_data.map(item => ({
+          time: new Date(item.date).toLocaleTimeString(),
+          date: new Date(item.date), // Keep the date object for sorting
+          tds_value: parseFloat(item.tds_value)
+        }));
+        
+        // Sort by date descending (newest first) and take only top 10
+        const sortedData = formattedData
+          .sort((a, b) => b.date - a.date)
+          .slice(0, 10)
+          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
+        
+        setTdsData(sortedData);
+      } catch (error) {
+        console.error("Error fetching TDS data:", error);
+      }
+    };
+    fetchTDSData();
+    const interval = setInterval(fetchTDSData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     const fetchPHData = async () => {
       try {
-          
-          const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
-          const historyData = await historyResponse.json();
-          const formattedData = historyData.ph_data.map(item => ({
-              time: new Date(item.timestamp).toLocaleTimeString(),
-              ph_value: parseFloat(item.ph_value)
-          }));
-          setPHData(formattedData);
+        const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
+        const historyData = await historyResponse.json();
+        const formattedData = historyData.ph_data.map(item => ({
+          time: new Date(item.timestamp).toLocaleTimeString(),
+          date: new Date(item.timestamp), // Keep the date object for sorting
+          ph_value: parseFloat(item.ph_value)
+        }));
+        
+        // Sort by date descending (newest first) and take only top 10
+        const sortedData = formattedData
+          .sort((a, b) => b.date - a.date)
+          .slice(0, 10)
+          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
+        
+        setPHData(sortedData);
       } catch (error) {
-          console.error("Error fetching PH data:", error);
+        console.error("Error fetching PH data:", error);
       }
     };
     fetchPHData();
     const interval = setInterval(fetchPHData, 10000);
     return () => clearInterval(interval);
-  }, [])
-
-  console.log(phData)
+  }, []);
   
   return (
-      <div className="History panel overflow-hidden w-[90%] max-h-[90vh] mt-20 md:mt-0 flex items-center flex-col">
-        <h2 className="panel-title">History</h2>
-        <button onClick={downloadPDF} className="button download-button mx-3 mb-4">
-          Download PDF
-        </button>
-        <div className="grid md:grid-cols-2 gap-4 w-[100%] overflow-y-scroll">
-          <div className="temperature-history hist flex flex-col items-center border-2 p-2 rounded-xl">
-              <div className="flex flex-col w-full">
-                <h3 className="text-xl font-semibold mb-2 text-center">Temperature & Humidity History</h3>
+    <div className="w-full max-w-6xl mx-auto p-4 md:p-6">
+      <div className="rounded-lg bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/30 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-700/30 flex flex-col md:flex-row items-center justify-between">
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 mb-3 md:mb-0">
+            Sensor History (Latest 10 entries)
+          </h2>
+          <button 
+            onClick={downloadPDF} 
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition duration-200"
+          >
+            Download PDF Report
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 md:p-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            
+            {/* Temperature & Humidity History */}
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/30 overflow-hidden h-96 flex flex-col">
+              <div className="p-3 bg-slate-700/30 flex justify-between items-center">
+                <h3 className="font-medium text-blue-400">Temperature & Humidity History</h3>
                 <button
                   onClick={deleteTemperatureHumidityHistory}
-                  className="button clear-button mb-2 "
+                  className="px-3 py-1 bg-red-600/80 hover:bg-red-700 text-white text-sm rounded-md transition"
                 >
-                  Clear History
+                  Clear
                 </button>
               </div>
-              <ul className="text-center w-[80%] ">
+              <div className="p-4 overflow-y-auto flex-grow">
                 {temperatureHumidityData.length ? (
-                  temperatureHumidityData.map((data, index) => (
-                    <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
-                      Temperature: {data.temperature}°C and Humidity: {data.humidity}% at{" "}
-                      {data.time}
-                    </li>
-                  ))
+                  <ul className="space-y-2">
+                    {temperatureHumidityData.map((data, index) => (
+                      <li key={index} className="p-2 border-b border-slate-700/30 text-slate-300">
+                        <span className="text-white font-medium">{data.time}</span>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-blue-400">{data.temperature}°C</span>
+                          <span className="text-green-400">{data.humidity}%</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <li>No temperature and humidity history available.</li>
+                  <p className="text-slate-400 text-center pt-8">No temperature and humidity history available.</p>
                 )}
-              </ul>
-          </div>
-
-          <div className="moisture-history hist flex flex-col items-center border-2 p-2 rounded-xl">
-            <div className="flex flex-col w-full">
-              <h3 className="text-xl font-semibold mb-2 text-center">Moisture History</h3>
-              <button
-                onClick={deleteMoistureHistory}
-                className="button clear-button mb-2"
-              >
-                Clear History
-              </button>
+              </div>
             </div>
-            <ul className="text-center w-[80%]  ">
-              {moistureData.length ? (
-                moistureData.map((data, index) => (
-                  <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
-                    {capitalizeFirstLetter(data.state)} - {data.level} at {data.time}
-                  </li>
-                ))
-              ) : (
-                <li>No moisture history available.</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="tds-history hist flex flex-col items-center border-2 p-2 rounded-xl">
-              <div className="flex flex-col w-full">
-                <h3 className="text-xl font-semibold mb-2 text-center">TDS History</h3>
+            
+            {/* Moisture History */}
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/30 overflow-hidden h-96 flex flex-col">
+              <div className="p-3 bg-slate-700/30 flex justify-between items-center">
+                <h3 className="font-medium text-blue-400">Moisture History</h3>
+                <button
+                  onClick={deleteMoistureHistory}
+                  className="px-3 py-1 bg-red-600/80 hover:bg-red-700 text-white text-sm rounded-md transition"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-grow">
+                {moistureData.length ? (
+                  <ul className="space-y-2">
+                    {moistureData.map((data, index) => (
+                      <li key={index} className="p-2 border-b border-slate-700/30 text-slate-300">
+                        <span className="text-white font-medium">{data.time}</span>
+                        <div className="flex justify-between mt-1">
+                          <span className={`${
+                            data.state.toLowerCase() === 'wet' ? 'text-blue-400' :
+                            data.state.toLowerCase() === 'moist' ? 'text-green-400' : 'text-yellow-400'
+                          } capitalize`}>
+                            {data.state}
+                          </span>
+                          <span className="text-indigo-400">{data.level}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-slate-400 text-center pt-8">No moisture history available.</p>
+                )}
+              </div>
+            </div>
+            
+            {/* TDS History */}
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/30 overflow-hidden h-96 flex flex-col">
+              <div className="p-3 bg-slate-700/30 flex justify-between items-center">
+                <h3 className="font-medium text-blue-400">TDS History</h3>
                 <button
                   onClick={deleteTDSHistory}
-                  className="button clear-button mb-2 "
+                  className="px-3 py-1 bg-red-600/80 hover:bg-red-700 text-white text-sm rounded-md transition"
                 >
-                  Clear History
+                  Clear
                 </button>
               </div>
-              <ul className="text-center w-[80%] ">
+              <div className="p-4 overflow-y-auto flex-grow">
                 {tdsData.length ? (
-                  tdsData.map((data, index) => (
-                    <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
-                      TDS : {Math.floor(data.tds_value * 100)/100}{"\t"}at {data.time}
-                    </li>
-                  ))
+                  <ul className="space-y-2">
+                    {tdsData.map((data, index) => (
+                      <li key={index} className="p-2 border-b border-slate-700/30 text-slate-300">
+                        <span className="text-white font-medium">{data.time}</span>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-purple-400">TDS:</span>
+                          <span className="text-indigo-400">{Math.floor(data.tds_value * 100)/100}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <li>No TDS history available.</li>
+                  <p className="text-slate-400 text-center pt-8">No TDS history available.</p>
                 )}
-              </ul>
-          </div>
-
-          <div className="ph-history hist flex flex-col items-center border-2 p-2 rounded-xl">
-              <div className="flex flex-col w-full">
-                <h3 className="text-xl font-semibold mb-2 text-center">PH History</h3>
+              </div>
+            </div>
+            
+            {/* PH History */}
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/30 overflow-hidden h-96 flex flex-col">
+              <div className="p-3 bg-slate-700/30 flex justify-between items-center">
+                <h3 className="font-medium text-blue-400">PH History</h3>
                 <button
                   onClick={deletePHHistory}
-                  className="button clear-button mb-2 "
+                  className="px-3 py-1 bg-red-600/80 hover:bg-red-700 text-white text-sm rounded-md transition"
                 >
-                  Clear History
+                  Clear
                 </button>
               </div>
-              <ul className="text-center w-[80%] ">
+              <div className="p-4 overflow-y-auto flex-grow">
                 {phData.length ? (
-                  phData.map((data, index) => (
-                    <li key={index} className='mb-1 text-1xl border-b-2 pb-2'>
-                      PH : {Math.floor(data.ph_value * 100)/100}{"\t"}at {data.time}
-                    </li>
-                  ))
+                  <ul className="space-y-2">
+                    {phData.map((data, index) => (
+                      <li key={index} className="p-2 border-b border-slate-700/30 text-slate-300">
+                        <span className="text-white font-medium">{data.time}</span>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-green-400">PH:</span>
+                          <span className={`${
+                            data.ph_value < 6.5 ? 'text-yellow-400' :
+                            data.ph_value > 7.5 ? 'text-blue-400' : 'text-green-400'
+                          }`}>
+                            {Math.floor(data.ph_value * 100)/100}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <li>No PH history available.</li>
+                  <p className="text-slate-400 text-center pt-8">No PH history available.</p>
                 )}
-              </ul>
+              </div>
+            </div>
+            
           </div>
-
         </div>
       </div>
+    </div>
   );
-}
+};
 
-export default History
+export default History;

@@ -130,59 +130,59 @@ sensor = GroveMoistureSensor(0)
 last_dry_state = False
 last_wet_state = False
 
-# @app.route("/start_stream", methods=["POST"])
-# def start_stream():
-#     global is_streaming, camera_thread
+@app.route("/start_stream", methods=["POST"])
+def start_stream():
+    global is_streaming, camera_thread
     
-#     # Reset streaming state and ensure any previous thread is stopped
-#     is_streaming = False
-#     if camera_thread and camera_thread.is_alive():
-#         camera_thread.join(timeout=2)
+    # Reset streaming state and ensure any previous thread is stopped
+    is_streaming = False
+    if camera_thread and camera_thread.is_alive():
+        camera_thread.join(timeout=2)
     
-#     # Start new streaming session
-#     is_streaming = True
-#     camera_thread = socketio.start_background_task(generate_frames)
-#     return jsonify({"message": "Stream started"}), 200
+    # Start new streaming session
+    is_streaming = True
+    camera_thread = socketio.start_background_task(generate_frames)
+    return jsonify({"message": "Stream started"}), 200
 
-# @app.route("/stop_stream", methods=["POST"])
-# def stop_stream():
-#     global is_streaming
+@app.route("/stop_stream", methods=["POST"])
+def stop_stream():
+    global is_streaming
     
-#     is_streaming = False
+    is_streaming = False
     
-#     # Optional: Add a small delay to ensure streaming stops
-#     socketio.sleep(0.5)
+    # Optional: Add a small delay to ensure streaming stops
+    socketio.sleep(0.5)
     
-#     return jsonify({"message": "Stream stopped"}), 200
+    return jsonify({"message": "Stream stopped"}), 200
 
-# @app.route("/capture_photo", methods=["POST"])
-# def capture_photo():
-#     try:
-#         camera = initialize_camera()
+@app.route("/capture_photo", methods=["POST"])
+def capture_photo():
+    try:
+        camera = initialize_camera()
 
-#         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#         filename = f"photo_{timestamp}.jpg"
-#         filepath = os.path.join(PHOTO_DIRECTORY, filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"photo_{timestamp}.jpg"
+        filepath = os.path.join(PHOTO_DIRECTORY, filename)
 
-#         camera.start_and_capture_file(filepath)
-#         camera.close()
+        camera.start_and_capture_file(filepath)
+        camera.close()
 
-#         new_photo = PhotoRecord(
-#             filename=filename, 
-#             google_drive_link=filepath
-#         )
-#         db.session.add(new_photo)
-#         db.session.commit()
+        new_photo = PhotoRecord(
+            filename=filename, 
+            google_drive_link=filepath
+        )
+        db.session.add(new_photo)
+        db.session.commit()
 
-#         return jsonify({
-#             "message": "Photo captured successfully", 
-#             "filename": filename,
-#             "filepath": filepath
-#         }), 200
+        return jsonify({
+            "message": "Photo captured successfully", 
+            "filename": filename,
+            "filepath": filepath
+        }), 200
 
-#     except Exception as e:
-#         app.logger.error(f"Error capturing photo: {str(e)}")
-#         return jsonify({"message": str(e)}), 400
+    except Exception as e:
+        app.logger.error(f"Error capturing photo: {str(e)}")
+        return jsonify({"message": str(e)}), 400
 
 
 # New route to get photo records
@@ -195,8 +195,8 @@ def get_photo_records():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-# @app.route("/get_latest_photo", methods=["GET"])
-# def get_latest_photo():
+@app.route("/get_latest_photo", methods=["GET"])
+def get_latest_photo():
     try:
         # Get the most recently captured photo
         photos = sorted([f for f in os.listdir(PHOTO_DIRECTORY) if f.endswith('.jpg')], reverse=True)
@@ -450,35 +450,35 @@ def get_contacts():
 
     return jsonify({"contacts": results}), 200
 
-# @app.route("/toggle_relay", methods=["POST"])
-# def toggle_relay():
-#     try:
-#         # Toggle the relay state
-#         if relay.is_active:
-#             relay.off()
-#             light_status = "OFF"
-#         else:
-#             relay.on()
-#             light_status = "ON"
+@app.route("/toggle_relay", methods=["POST"])
+def toggle_relay():
+    try:
+        # Toggle the relay state
+        if relay.is_active:
+            relay.off()
+            light_status = "OFF"
+        else:
+            relay.on()
+            light_status = "ON"
 
-#         # Create a new LightBulb entry with the status and current timestamp
-#         new_light_bulb = LightBulb(status=light_status)
-#         db.session.add(new_light_bulb)
-#         db.session.commit()
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
+        # Create a new LightBulb entry with the status and current timestamp
+        new_light_bulb = LightBulb(status=light_status)
+        db.session.add(new_light_bulb)
+        db.session.commit()
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
-#     return jsonify({"status": light_status}), 200
+    return jsonify({"status": light_status}), 200
 
-# @app.route("/get_relay_status", methods=["GET"])
-# def get_relay_status():
-#     try:
-#         # Get current relay status
-#         light_status = "ON" if relay.is_active else "OFF"
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
+@app.route("/get_relay_status", methods=["GET"])
+def get_relay_status():
+    try:
+        # Get current relay status
+        light_status = "ON" if relay.is_active else "OFF"
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
-#     return jsonify({"status": light_status}), 200
+    return jsonify({"status": light_status}), 200
 
 @app.route("/delete_all_data", methods=["POST"])
 def delete_all_data():

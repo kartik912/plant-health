@@ -1,70 +1,185 @@
 import React, { useState, useEffect } from "react";
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from "recharts";
 
 const PHSensor = () => {
-    const [phData, setPHData] = useState([]);
-    const [currentPH, setCurrentPH] = useState(0);
+  const [currentPH, setCurrentPH] = useState({
+    value: 0,
+    state: "Neutral"
+  });
+  const [phData, setPHData] = useState([]);
+  const maxDataPoints = 20; // Limit the number of points shown on graph
 
-    const fetchPHData = async () => {
-        try {
-            const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
-            const historyData = await historyResponse.json();
-            const formattedData = historyData.ph_data.map(item => ({
-                time: new Date(item.timestamp).toLocaleTimeString(),
-                ph_value: parseFloat(item.ph_value)
-            }));
-            setPHData(formattedData);
-            
-            if (formattedData.length > 0) {
-                setCurrentPH(formattedData[formattedData.length - 1].ph_value);
-            }
-        } catch (error) {
-            console.error("Error fetching PH data:", error);
-        }
+  useEffect(() => {
+    // Initial fetch of historical data
+    const fetchPHHistoryData = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_ph_history");
+        const data = await response.json();
+        const formattedData = data.ph_data.map((item) => {
+          const phValue = parseFloat(item.ph_value);
+          return {
+            time: new Date(item.timestamp).toLocaleTimeString(),
+            value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+            state: getPHState(isNaN(phValue) ? 0 : phValue)
+          };
+        });
+        setPHData(formattedData.slice(-maxDataPoints));
+      } catch (error) {
+        console.error("Error fetching PH history data:", error);
+      }
     };
 
-    useEffect(() => {
-        fetchPHData();
-        const interval = setInterval(fetchPHData, 10000);
-        return () => clearInterval(interval);
-    }, []);
+    fetchPHHistoryData();
+  }, []); // Only fetch historical data once on mount
 
-    return (
-        <>
-            <div className="panel w-[80%] mb-4 md:mb-0">
-                <h2 className="panel-title">PH Value</h2>
-                <div className="panel-content">
-                    <div className="sensor-readings mb-4 font-semibold">
-                        <div>Current PH: {currentPH} </div>
-                    </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={phData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="time" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line
-                                type="monotone"
-                                dataKey="ph_value"
-                                stroke="#FF6384"
-                                name="PH Level"
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+  useEffect(() => {
+    const pollPH = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_ph");
+        const data = await response.json();
+        
+        // Check if the value exists and is a valid number
+        let phValue = parseFloat(data.tds_value);
+        
+        // Handle potential NaN values
+        if (isNaN(phValue)) {
+          console.warn("Received NaN pH value, defaulting to 7.0");
+          phValue = 7.0; // Default to neutral pH if value is NaN
+        }
+        
+        const newReading = {
+          time: new Date().toLocaleTimeString(),
+          value: parseFloat(phValue.toFixed(1)),
+          state: getPHState(phValue)
+        };
+
+        setCurrentPH({
+          value: parseFloat(phValue.toFixed(1)),
+          state: getPHState(phValue)
+        });
+
+        // Update graph data with new reading
+        setPHData(prevData => {
+          const newData = [...prevData, newReading];
+          // Keep only the last maxDataPoints readings
+          return newData.slice(-maxDataPoints);
+        });
+      } catch (error) {
+        console.error("Error checking PH:", error);
+      }
+    };
+
+    pollPH();
+    const phInterval = setInterval(pollPH, 10000);
+    return () => clearInterval(phInterval);
+  }, []);
+
+  const getPHState = (ph) => {
+    if (isNaN(ph)) return "Neutral"; // Handle NaN values
+    if (ph < 6.5) return "Acidic";
+    if (ph > 7.5) return "Alkaline";
+    return "Neutral";
+  };
+
+  const getStateColor = (state) => {
+    switch (state?.toLowerCase()) {
+      case 'acidic':
+        return 'text-yellow-400';
+      case 'neutral':
+        return 'text-green-400';
+      case 'alkaline':
+        return 'text-blue-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-4 md:p-6">
+      <div className="rounded-lg bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/30 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-700/30">
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-indigo-500">
+            PH Monitor
+          </h2>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="space-y-6">
+            {/* Current Reading */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
+                <div className="flex items-center gap-2 text-lg font-medium text-green-400">
+                  PH Level
                 </div>
+                <div className="mt-2 text-3xl font-bold text-white">
+                  {currentPH.value}
+                </div>
+              </div>
+              
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
+                <div className="flex items-center gap-2 text-lg font-medium text-indigo-400">
+                  Status
+                </div>
+                <div className={`mt-2 text-3xl font-bold capitalize ${getStateColor(currentPH.state)}`}>
+                  {currentPH.state || "Neutral"}
+                </div>
+              </div>
             </div>
-        </>
-    );
+
+            {/* Chart */}
+            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={phData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8' }}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8' }}
+                    domain={[0, 14]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1e293b',
+                      border: '1px solid rgba(148, 163, 184, 0.2)',
+                      borderRadius: '0.5rem'
+                    }}
+                    labelStyle={{ color: '#94a3b8' }}
+                    formatter={(value) => isNaN(value) ? "N/A" : value}
+                  />
+                  <Legend 
+                    wrapperStyle={{ color: '#94a3b8' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#4ade80"
+                    strokeWidth={2}
+                    dot={false}
+                    name="PH Level"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default PHSensor;
