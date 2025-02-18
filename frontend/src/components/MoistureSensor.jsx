@@ -19,7 +19,6 @@ const MoistureSensor = () => {
   const maxDataPoints = 20; // Limit the number of points shown on graph
 
   useEffect(() => {
-    // Initial fetch of historical data
     const fetchMoistureData = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get_moisture_data");
@@ -29,45 +28,26 @@ const MoistureSensor = () => {
           level: parseFloat(item.moisture_level),
           state: item.state,
         }));
-        setMoistureData(formattedData.slice(-maxDataPoints));
+        
+        // Set historical data
+        const recentData = formattedData.slice(-maxDataPoints);
+        setMoistureData(recentData);
+        
+        // Set current value from the latest entry
+        if (recentData.length > 0) {
+          const latestEntry = recentData[recentData.length - 1];
+          setCurrentMoisture({
+            level: latestEntry.level,
+            state: latestEntry.state
+          });
+        }
       } catch (error) {
         console.error("Error fetching moisture data:", error);
       }
     };
 
     fetchMoistureData();
-  }, []); // Only fetch historical data once on mount
-
-  useEffect(() => {
-    const pollMoisture = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/check_moisture");
-        const data = await response.json();
-        
-        const newReading = {
-          time: new Date().toLocaleTimeString(),
-          level: data.moisture_level,
-          state: data.state
-        };
-
-        setCurrentMoisture({
-          level: data.moisture_level,
-          state: data.state
-        });
-
-        // Update graph data with new reading
-        setMoistureData(prevData => {
-          const newData = [...prevData, newReading];
-          // Keep only the last maxDataPoints readings
-          return newData.slice(-maxDataPoints);
-        });
-      } catch (error) {
-        console.error("Error checking moisture:", error);
-      }
-    };
-
-    pollMoisture();
-    const moistureInterval = setInterval(pollMoisture, 5000);
+    const moistureInterval = setInterval(fetchMoistureData, 5000);
     return () => clearInterval(moistureInterval);
   }, []);
 

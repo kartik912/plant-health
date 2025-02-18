@@ -22,14 +22,7 @@ const Temperature = () => {
   useEffect(() => {
     const fetchTemperatureHumidityData = async () => {
       try {
-        const currentResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity");
-        const currentData = await currentResponse.json();
-        
-        setCurrentTemperatureHumidity({
-          temperature: currentData.temperature,
-          humidity: currentData.humidity
-        });
-
+        // Only fetch the history data
         const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
         const historyData = await historyResponse.json();
         
@@ -40,6 +33,15 @@ const Temperature = () => {
         }));
         
         setTemperatureHumidityData(formattedData);
+        
+        // Set current values from the latest entry in history if available
+        if (formattedData.length > 0) {
+          const latestEntry = formattedData[formattedData.length - 1];
+          setCurrentTemperatureHumidity({
+            temperature: latestEntry.temperature,
+            humidity: latestEntry.humidity
+          });
+        }
       } catch (error) {
         console.error("Error fetching temperature and humidity data:", error);
       }

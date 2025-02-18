@@ -19,7 +19,6 @@ const PHSensor = () => {
   const maxDataPoints = 20; // Limit the number of points shown on graph
 
   useEffect(() => {
-    // Initial fetch of historical data
     const fetchPHHistoryData = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get_ph_history");
@@ -32,54 +31,26 @@ const PHSensor = () => {
             state: getPHState(isNaN(phValue) ? 0 : phValue)
           };
         });
-        setPHData(formattedData.slice(-maxDataPoints));
+        
+        // Set historical data
+        const recentData = formattedData.slice(-maxDataPoints);
+        setPHData(recentData);
+        
+        // Set current value from the latest entry
+        if (recentData.length > 0) {
+          const latestEntry = recentData[recentData.length - 1];
+          setCurrentPH({
+            value: latestEntry.value,
+            state: latestEntry.state
+          });
+        }
       } catch (error) {
         console.error("Error fetching PH history data:", error);
       }
     };
 
     fetchPHHistoryData();
-  }, []); // Only fetch historical data once on mount
-
-  useEffect(() => {
-    const pollPH = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/get_ph");
-        const data = await response.json();
-        
-        // Check if the value exists and is a valid number
-        let phValue = parseFloat(data.tds_value);
-        
-        // Handle potential NaN values
-        if (isNaN(phValue)) {
-          console.warn("Received NaN pH value, defaulting to 7.0");
-          phValue = 7.0; // Default to neutral pH if value is NaN
-        }
-        
-        const newReading = {
-          time: new Date().toLocaleTimeString(),
-          value: parseFloat(phValue.toFixed(1)),
-          state: getPHState(phValue)
-        };
-
-        setCurrentPH({
-          value: parseFloat(phValue.toFixed(1)),
-          state: getPHState(phValue)
-        });
-
-        // Update graph data with new reading
-        setPHData(prevData => {
-          const newData = [...prevData, newReading];
-          // Keep only the last maxDataPoints readings
-          return newData.slice(-maxDataPoints);
-        });
-      } catch (error) {
-        console.error("Error checking PH:", error);
-      }
-    };
-
-    pollPH();
-    const phInterval = setInterval(pollPH, 10000);
+    const phInterval = setInterval(fetchPHHistoryData, 10000);
     return () => clearInterval(phInterval);
   }, []);
 

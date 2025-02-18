@@ -17,7 +17,7 @@ import Gauge from "../components/ui/gauge";
 
 const Dashboard = () => {
   // Current sensor values
-  const [currentMoisture, setCurrentMoisture] = useState({ value: 0, state: "", time: "N/A" });
+  const [currentMoisture, setCurrentMoisture] = useState({ value: 0, state: "Dry", time: "N/A" });
   const [currentTemperature, setCurrentTemperature] = useState({ value: 0, time: "N/A" });
   const [currentHumidity, setCurrentHumidity] = useState({ value: 0, time: "N/A" });
   const [currentPH, setCurrentPH] = useState({ value: 0, time: "N/A" });
@@ -26,50 +26,29 @@ const Dashboard = () => {
   // Historical data for all sensors
   const [sensorData, setSensorData] = useState([]);
 
-  // Fetch all sensor data
+  // Helper function to safely parse numeric values
+  const safeParseFloat = (value) => {
+    if (value === null || value === undefined) return null;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  // Helper function to determine moisture state based on value
+  const getMoistureState = (value) => {
+    if (value === null || value === undefined) return "Unknown";
+    
+    // Ensure value is a number
+    const moistureValue = safeParseFloat(value);
+    if (moistureValue === null) return "Unknown";
+    
+    if (moistureValue < 300) return "Dry";
+    if (moistureValue < 600) return "Moist";
+    if (moistureValue < 1000) return "Wet";
+    return "Wet";
+  };
+
+  // Fetch historical data
   useEffect(() => {
-    const fetchAllSensorData = async () => {
-      try {
-        const [tempHumRes, moistureRes, phRes, tdsRes] = await Promise.all([
-          fetch("http://127.0.0.1:5000/get_temperature_humidity"),
-          fetch("http://127.0.0.1:5000/check_moisture"),
-          fetch("http://127.0.0.1:5000/get_ph"),
-          fetch("http://127.0.0.1:5000/get_tds")
-        ]);
-
-        
-        const tempHumData = await tempHumRes.json();
-        const moistureData = await moistureRes.json();
-        const phData = await phRes.json();
-        const tdsData = await tdsRes.json();
-        
-        setCurrentMoisture({
-          value: moistureData.moisture_level,
-          state: moistureData.state,
-          time: new Date().toLocaleTimeString("en-GB", { hour12: false })
-        });
-        setCurrentTemperature({
-          value: parseFloat(tempHumData.temperature),
-          time: new Date().toLocaleTimeString("en-GB", { hour12: false })
-        });
-        setCurrentHumidity({
-            value: parseFloat(tempHumData.humidity),
-            time: new Date().toLocaleTimeString("en-GB", { hour12: false })
-          });
-        setCurrentPH({
-          value: parseFloat(phData.ph_value),
-          time: new Date().toLocaleTimeString("en-GB", { hour12: false })
-        });
-        setCurrentTDS({
-          value: parseFloat(tdsData.tds_value),
-          time: new Date().toLocaleTimeString("en-GB", { hour12: false })
-        });
-      } catch (error) {
-        console.error("Error fetching current sensor data:", error);
-      }
-    };
-
-    // Fetch historical data
     const fetchHistoricalData = async () => {
       try {
         const [tempHumHistoryRes, moistureHistoryRes, phHistoryRes, tdsHistoryRes] = await Promise.all([
@@ -84,32 +63,91 @@ const Dashboard = () => {
         const phHistory = await phHistoryRes.json();
         const tdsHistory = await tdsHistoryRes.json();
 
-        // Merge all historical data
-        const mergedData = tempHumHistory.temperature_humidity_data.map((item, index) => {
-          const moistureItem = moistureHistory.moisture_data[index] || {};
-          const phItem = phHistory.ph_data[index] || {};
-          const tdsItem = tdsHistory.tds_data[index] || {};
+        console.log("Moisture history data:", moistureHistory);
+        
+        // Enhanced error logging
+        if (!moistureHistory.moisture_data || !Array.isArray(moistureHistory.moisture_data)) {
+          console.error("Invalid moisture data format:", moistureHistory);
+        }
+
+        // Merge all historical data with more robust error handling
+        const mergedData = [];
+        
+        const maxLength = Math.max(
+          tempHumHistory.temperature_humidity_data?.length || 0,
+          moistureHistory.moisture_data?.length || 0,
+          phHistory.ph_data?.length || 0,
+          tdsHistory.tds_data?.length || 0
+        );
+        
+        for (let i = 0; i < maxLength; i++) {
+          const tempHumItem = tempHumHistory.temperature_humidity_data?.[i];
+          const moistureItem = moistureHistory.moisture_data?.[i];
+          const phItem = phHistory.ph_data?.[i];
+          const tdsItem = tdsHistory.tds_data?.[i];
           
-          return {
-            time: new Date(item.date).toLocaleTimeString(),
-            temperature: parseFloat(item.temperature),
-            humidity: parseFloat(item.humidity),
-            ph: phItem.ph_value ? parseFloat(phItem.ph_value) : null,
-            moisture: moistureItem.moisture_level ? parseFloat(moistureItem.moisture_level) : null,
-            tds: tdsItem.tds_value ? parseFloat(tdsItem.tds_value) : null
-          };
-        });
+          if (tempHumItem) {
+            mergedData.push({
+              time: new Date(tempHumItem.date).toLocaleTimeString(),
+              temperature: safeParseFloat(tempHumItem.temperature),
+              humidity: safeParseFloat(tempHumItem.humidity),
+              ph: phItem ? safeParseFloat(phItem.ph_value) : null,
+              moisture: moistureItem ? safeParseFloat(moistureItem.moisture_level) : null,
+              tds: tdsItem ? safeParseFloat(tdsItem.tds_value) : null
+            });
+          }
+        }
 
         setSensorData(mergedData);
+
+        // Update current sensor values with the latest historical data
+        if (mergedData.length > 0) {
+          const latestData = mergedData[mergedData.length - 1];
+          
+          // Log the moisture value we're trying to use
+          console.log("Latest moisture value:", latestData.moisture);
+          
+          const moistureValue = latestData.moisture !== null ? latestData.moisture : 0;
+          
+          setCurrentMoisture({
+            value: moistureValue,
+            state: getMoistureState(moistureValue),
+            time: latestData.time
+          });
+          
+          console.log("Setting current moisture to:", {
+            value: moistureValue,
+            state: getMoistureState(moistureValue),
+            time: latestData.time
+          });
+          
+          setCurrentTemperature({ 
+            value: latestData.temperature !== null ? latestData.temperature : 0, 
+            time: latestData.time 
+          });
+          
+          setCurrentHumidity({ 
+            value: latestData.humidity !== null ? latestData.humidity : 0, 
+            time: latestData.time 
+          });
+          
+          setCurrentPH({ 
+            value: latestData.ph !== null ? latestData.ph : 0, 
+            time: latestData.time 
+          });
+          
+          setCurrentTDS({ 
+            value: latestData.tds !== null ? latestData.tds : 0, 
+            time: latestData.time 
+          });
+        }
       } catch (error) {
         console.error("Error fetching historical data:", error);
       }
     };
 
-    fetchAllSensorData();
     fetchHistoricalData();
     const interval = setInterval(() => {
-      fetchAllSensorData();
       fetchHistoricalData();
     }, 5000);
     return () => clearInterval(interval);
@@ -139,6 +177,9 @@ const Dashboard = () => {
     }
     return null;
   };
+
+  // Debugging current moisture value
+  console.log("Current moisture state in render:", currentMoisture);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 p-6">
@@ -224,7 +265,11 @@ const Dashboard = () => {
             <TDSGauge value={currentTDS?.value} time={currentTDS?.time} />
           </div>
           <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
-            <MoistureGauge value={currentMoisture?.value} state={currentMoisture?.state} time={currentMoisture?.time}/>
+            <MoistureGauge 
+              value={currentMoisture?.value} 
+              state={currentMoisture?.state} 
+              time={currentMoisture?.time}
+            />
           </div>
         </div>
 

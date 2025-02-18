@@ -17,17 +17,21 @@ const TDS = () => {
   useEffect(() => {
     const fetchTDSData = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_tds");
-        const data = await response.json();
-        setCurrentTDS(parseFloat(data.tds_value).toFixed(1));
-
         const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
         const historyData = await historyResponse.json();
         const formattedData = historyData.tds_data.map(item => ({
           time: new Date(item.date).toLocaleTimeString(),
           tds_value: parseFloat(item.tds_value)
         }));
+        
+        // Set historical data
         setTdsData(formattedData);
+        
+        // Set current value from the latest entry
+        if (formattedData.length > 0) {
+          const latestEntry = formattedData[formattedData.length - 1];
+          setCurrentTDS(parseFloat(latestEntry.tds_value).toFixed(1));
+        }
       } catch (error) {
         console.error("Error fetching TDS data:", error);
       }

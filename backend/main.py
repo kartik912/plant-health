@@ -15,6 +15,7 @@ from grove.adc import ADC
 import adafruit_dht
 import board
 import os
+import requests
 
 import math
 import sys
@@ -396,38 +397,23 @@ def get_moisture_data():
 
 @app.route("/check_moisture", methods=["GET"])
 def check_moisture():
-    global last_dry_state, last_wet_state
-    mois = sensor.moisture
-    if 0 <= mois < 300:
-        state = "dry"
-        if not last_dry_state:
-            # Store data only when first reaching dry state
+    try:
+        mois = sensor.moisture
+        if mois:
+            if 0 <= mois < 300:
+                state = "dry"
+            elif 300 <= mois < 600:
+                state = "moist"
+            else:
+                state = "wet"
             new_data = MoistureSensorData(moisture_level=mois, state=state)
             db.session.add(new_data)
             db.session.commit()
-            last_dry_state = True
-            last_wet_state = False
-            servo.min()
-            # Set motor to 90 degrees for dry state
-            # set_angle(90)
+            return jsonify({"moisture_level": mois, "state": state}), 200
         else:
-            return jsonify({"message": "Already in dry state."}), 200
-    elif 300 <= mois < 600:
-        state = "moist"
-    else:
-        state = "wet"
-        if not last_wet_state:
-            # Store data only when first reaching wet state
-            new_data = MoistureSensorData(moisture_level=mois, state=state)
-            db.session.add(new_data)
-            db.session.commit()
-            last_wet_state = True
-            last_dry_state = False
-            servo.max()
-            # Set motor to 0 degrees for wet state
-            # set_angle(0)
-
-    return jsonify({"moisture_level": mois, "state": state}), 200
+            return jsonify({"message": "Failed to read Moisture sensor data"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 @app.route("/delete_moisture_data", methods=["POST"])
 def delete_moisture_data():
@@ -495,7 +481,28 @@ def delete_all_data():
 def test():
     return {'message': 'Backend is working!'}
 
+def fetch_sensor_data():
+    while True:
+        try:
+            # Call the specified routes
+            # requests.post("http://127.0.0.1:5000/capture_photo")
+            requests.get("http://127.0.0.1:5000/get_ph")
+            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
+            requests.get("http://127.0.0.1:5000/get_tds")
+            requests.get("http://127.0.0.1:5000/check_moisture")
+        except Exception as e:
+            print(f"Error fetching sensor data: {e}")
+        
+        time.sleep(600) #10 mins
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+    
+    # Start the background task
+    data_fetch_thread = threading.Thread(target=fetch_sensor_data)
+    data_fetch_thread.daemon = True  # This makes sure the thread will exit when the main program does
+    data_fetch_thread.start()
+    
     app.run(host='0.0.0.0', port=5000)

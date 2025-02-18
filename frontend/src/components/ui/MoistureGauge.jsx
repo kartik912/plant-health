@@ -1,8 +1,13 @@
 import React from "react";
 import GaugeChart from "react-gauge-chart";
 
-const MoistureGauge = ({ value, time }) => {
+const MoistureGauge = ({ value, state, time }) => {
+  console.log("MoistureGauge received value:", value, "type:", typeof value);
+  console.log("MoistureGauge received state:", state);
+  console.log("MoistureGauge received time:", time);
+
   const normalizedValue = Math.min(Math.max(Number(value) || 0, 0), 2000);
+  console.log(value)
   const percentValue = normalizedValue / 2000;
 
   return (
@@ -43,7 +48,7 @@ const MoistureGauge = ({ value, time }) => {
         {/* Value display below gauge */}
         <div className="mt-6 text-center bg-slate-700/30 px-6 py-3 rounded-lg">
           <span className="text-3xl font-bold text-white">{normalizedValue.toFixed(1)}</span>
-          <span className="text-lg text-slate-400 ml-2">ppm</span>
+          <span className="text-lg text-slate-400 ml-2">{state}</span>
         </div>
       </div>
 
