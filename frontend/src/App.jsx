@@ -32,7 +32,7 @@ const SensorDashboard = () => {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#1E3E62]">
       <NavBar />
-      <main className="flex-1 md:ml-[20vw] md:min-ml-[250px] p-4 overflow-y-auto">
+      <main className="flex-1 md:ml-[20vw] md:min-ml-[250px] p-4 pt-20 md:pt-4 overflow-y-auto">
         <div className="flex justify-center items-start w-full">
           <Routes>
             <Route path="/" element={<Navigate to="dashboard"/>}/>

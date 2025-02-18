@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import request, jsonify
 from flask import Flask, send_file
+
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -16,9 +17,45 @@ import adafruit_dht
 import board
 import os
 import requests
-
+import socket
 import math
 import sys
+
+# for getting data
+def get_public_ip():
+    """Fetches the public IP address of Raspberry Pi"""
+    try:
+        response = requests.get("https://api64.ipify.org?format=json")
+        return response.json()["ip"]
+    except Exception as e:
+        return str(e)
+
+def get_location():
+    """Gets approximate geolocation based on public IP"""
+    ip = get_public_ip()
+    print(ip)
+    if "error" in ip:
+        return {"error": "Could not fetch public IP"}
+    
+    # Free API for geolocation (limited requests)
+    geo_url = f"http://ip-api.com/json/{ip}"
+    
+    try:
+        response = requests.get(geo_url)
+        data = response.json()
+        if data["status"] == "fail":
+            return {"error": "Could not determine location"}
+        return {
+            "ip": ip,
+            "country": data["country"],
+            "region": data["regionName"],
+            "city": data["city"],
+            "lat": data["lat"],
+            "lon": data["lon"],
+            "isp": data["isp"]
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 adc = ADC()
 class GroveTDS:
@@ -477,9 +514,13 @@ def delete_all_data():
 
     return jsonify({"message": "All data deleted successfully!"}), 200
 
-@app.route('/test')
-def test():
-    return {'message': 'Backend is working!'}
+
+# @app.route('/test')
+# def test():
+#     return {'message': 'Backend is working!'}
+@app.route("/get-location", methods=["GET"])
+def get_location_route():
+    return jsonify(get_location())  
 
 def fetch_sensor_data():
     while True:
@@ -494,6 +535,8 @@ def fetch_sensor_data():
             print(f"Error fetching sensor data: {e}")
         
         time.sleep(600) #10 mins
+
+
 
 
 if __name__ == "__main__":

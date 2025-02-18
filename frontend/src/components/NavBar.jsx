@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HiExternalLink, HiMenu, HiX } from "react-icons/hi";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [locationData, setLocationData] = useState({ state: "", country: "" });
   const location = useLocation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+
+  // Fetch location from Flask API
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get-location");
+        if (!response.ok) {
+          throw new Error("Failed to fetch location");
+        }
+        const data = await response.json();
+        setLocationData({ state: data.city, country: data.country });
+      } catch (error) {
+        console.error("Error fetching location:", error);
+      }
+    };
+
+    fetchLocation();
+  }, []);
 
   const navigationLinks = [
     { to: "/dashboard", text: "Dashboard" },
@@ -47,13 +66,16 @@ const NavBar = () => {
         <div className="w-full text-center p-6 border-b border-slate-700/30 hidden md:block">
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
             Plant Care
-            <br />
-            Dashboard
           </h1>
         </div>
-        
+
+        {/* Display Location */}
+        <div className="text-center text-slate-300 mt-2 text-sm">
+          📍 {locationData.state}, {locationData.country}
+        </div>
+
         {/* Navigation Links */}
-        <div className="w-full px-4 py-8 flex md:flex-col flex-wrap justify-center gap-1 mt-14 md:mt-0">
+        <div className="w-full px-4 py-8 flex md:flex-col flex-wrap justify-center gap-1 mt-4 md:mt-0">
           {navigationLinks.map((link) => (
             <Link 
               key={link.to}
@@ -68,7 +90,7 @@ const NavBar = () => {
             </Link>
           ))}
         </div>
-        
+
         {/* Bottom decorative gradient */}
         <div className="mt-auto w-full h-px bg-gradient-to-r from-transparent via-slate-600/20 to-transparent"></div>
       </div>
