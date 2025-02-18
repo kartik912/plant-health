@@ -14,6 +14,7 @@ import TemperatureGauge from "../components/ui/TemperatureGauge";
 import HumidityGauge from "../components/ui/HumidityGauge";
 import TDSGauge from "../components/ui/TDSGauge";
 import Gauge from "../components/ui/gauge";
+import { LocationMap } from "../components/Location"
 
 const Dashboard = () => {
   // Current sensor values
@@ -319,6 +320,9 @@ const Dashboard = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
+        </div>
+        <div className="mt-8">
+          <LocationMap />
         </div>
       </div>
     </div>
