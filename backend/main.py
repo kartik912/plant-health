@@ -1,27 +1,46 @@
-from datetime import datetime
-from flask import request, jsonify
-from flask import Flask, send_file
-
-from io import BytesIO
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from config import app, db
 from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData
+from reportlab.lib.pagesizes import letter
+from flask import request, jsonify, Flask, send_file, Response
+from flask_socketio import SocketIO
+from io import BytesIO
 from gpiozero import OutputDevice
 from grove.grove_moisture_sensor import GroveMoistureSensor
+from grove.adc import ADC
+from picamera2 import Picamera2,Preview
+import adafruit_dht
 # from gpiozero import Servo
+from reportlab.pdfgen import canvas
+from datetime import datetime
+from config import app, db
 from time import sleep
 import time
-from grove.adc import ADC
-import adafruit_dht
 import board
 import os
 import requests
 import socket
 import math
 import sys
+import io
+import threading
+import base64
 
-# for getting data
+#functions-------------------------------------------------------------------------------------------------------
+    # to keep fetching data from sensors-----------------------------------------------------
+def fetch_sensor_data():
+    while True:
+        try:
+            # Call the specified routes
+            # requests.post("http://127.0.0.1:5000/capture_photo")
+            requests.get("http://127.0.0.1:5000/get_ph")
+            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
+            requests.get("http://127.0.0.1:5000/get_tds")
+            requests.get("http://127.0.0.1:5000/check_moisture")
+        except Exception as e:
+            print(f"Error fetching sensor data: {e}")
+        
+        time.sleep(600) #10 mins
+    
+# function to fetch locations --------------------------------------------------------
 def get_public_ip():
     """Fetches the public IP address of Raspberry Pi"""
     try:
@@ -38,7 +57,7 @@ def get_location():
         return {"error": "Could not fetch public IP"}
     
     # Free API for geolocation (limited requests)
-    geo_url = f"http://ip-api.com/json/{ip}"
+    # geo_url = f"http://ip-api.com/json/{ip}"
     
     try:
         response = requests.get(geo_url)
@@ -56,6 +75,9 @@ def get_location():
         }
     except Exception as e:
         return {"error": str(e)}
+# ----------------------------------------------------------------------------------------
+
+# function for tds sensor----------------------------------------------------------------
 
 adc = ADC()
 class GroveTDS:
@@ -73,29 +95,8 @@ class GroveTDS:
         return 0
 
 tdssensor = GroveTDS(2)
-
-# from sqlalchemy import inspect
-# @app.route("/get_table_columns", methods=["GET"])
-# def get_table_columns():
-#     try:
-#         # Use SQLAlchemy inspector to get table information
-#         inspector = inspect(db.engine)
-#         columns = inspector.get_columns("photo_record")
-#         column_names = [column["name"] for column in columns]
-        
-#         return jsonify({"columns": column_names}), 200
-#     except Exception as e:
-#         return jsonify({"message": str(e)}), 400
-
-# camera
-from flask import Flask, Response
-from flask_socketio import SocketIO
-from picamera2 import Picamera2,Preview
-import io
-import threading
-import base64
-
-#live feed
+    #-------------------------------------------------------------------------------------
+    # Camera ------------------------------------------------------------------------------
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 is_streaming = False
@@ -147,11 +148,10 @@ def generate_frames():
                 global_camera.close()
                 global_camera = None
 
-#photo capture
-
 PHOTO_DIRECTORY = "captured_photos"
 os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
-
+#-------------------------------------------------------------------------------------
+#relay setup
 RELAY_PIN = 16
 relay = OutputDevice(RELAY_PIN)
 
@@ -164,10 +164,7 @@ sensor = GroveMoistureSensor(0)
 # #servo setup
 # servo = Servo(12)
 
-# # Moisture state tracking
-last_dry_state = False
-last_wet_state = False
-
+# Camera route -------------------------------------------------------------------------------------------------------
 @app.route("/start_stream", methods=["POST"])
 def start_stream():
     global is_streaming, camera_thread
@@ -249,40 +246,7 @@ def get_latest_photo():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-@app.route("/get_ph", methods=["GET"])
-def get_ph():
-    try:
-        raw_voltage = adc.read_voltage(4)
-        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage calculation
-        ph_val = 7 + ((2.5 - voltage) / 0.18)
-
-        # Store in database
-        new_data = PHData(ph_value=ph_val)
-        db.session.add(new_data)
-        db.session.commit()
-
-        return jsonify({"ph_value": ph_val}), 200
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
-@app.route("/get_ph_history", methods=["GET"])
-def get_ph_history():
-    try:
-        all_data = PHData.query.all()
-        results = [data.to_json() for data in all_data]
-        return jsonify({"ph_data": results}), 200
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
-@app.route("/delete_ph_data", methods=["POST"])
-def delete_ph_data():
-    try:
-        PHData.query.delete()
-        db.session.commit()
-        return jsonify({"message": "All pH data deleted successfully!"}), 200
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
+# Temperature and Humidity sensor routes --------------------------------------------------------------------------------
 @app.route("/get_temperature_humidity", methods=["GET"])
 def get_temperature_humidity():
     try:
@@ -325,6 +289,46 @@ def delete_temperature_humidity_data():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
+#moisture sensor routes------------------------------------------------------------------------------------------------
+@app.route("/get_moisture_data", methods=["GET"])
+def get_moisture_data():
+    try:
+        all_data = MoistureSensorData.query.all()
+        results = [{"id": data.id, "moisture_level": data.moisture_level, "state": data.state, "date": data.date} for data in all_data]
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    return jsonify({"moisture_data": results}), 200
+
+@app.route("/check_moisture", methods=["GET"])
+def check_moisture():
+    try:
+        mois = sensor.moisture
+        if mois:
+            if 0 <= mois < 300:
+                state = "dry"
+            elif 300 <= mois < 600:
+                state = "moist"
+            else:
+                state = "wet"
+            new_data = MoistureSensorData(moisture_level=mois, state=state)
+            db.session.add(new_data)
+            db.session.commit()
+            return jsonify({"moisture_level": mois, "state": state}), 200
+        else:
+            return jsonify({"message": "Failed to read Moisture sensor data"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/delete_moisture_data", methods=["POST"])
+def delete_moisture_data():
+    try:
+        MoistureSensorData.query.delete()
+        db.session.commit()
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    return jsonify({"message": "All moisture data deleted successfully!"}), 200
+
+#tds sensor routes------------------------------------------------------------------------------------------------
 
 @app.route("/get_tds", methods=["GET"])
 def get_tds():
@@ -358,7 +362,43 @@ def delete_tds_data():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
+#ph sensor routes------------------------------------------------------------------------------------------------
+@app.route("/get_ph", methods=["GET"])
+def get_ph():
+    try:
+        raw_voltage = adc.read_voltage(4)
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage calculation
+        ph_val = 7 + ((2.5 - voltage) / 0.18)
 
+        # Store in database
+        new_data = PHData(ph_value=ph_val)
+        db.session.add(new_data)
+        db.session.commit()
+
+        return jsonify({"ph_value": ph_val}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/get_ph_history", methods=["GET"])
+def get_ph_history():
+    try:
+        all_data = PHData.query.all()
+        results = [data.to_json() for data in all_data]
+        return jsonify({"ph_data": results}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/delete_ph_data", methods=["POST"])
+def delete_ph_data():
+    try:
+        PHData.query.delete()
+        db.session.commit()
+        return jsonify({"message": "All pH data deleted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+
+#download and delete database content as pdf--------------------------------------------------------------------------------
 @app.route("/download_database_pdf", methods=["GET"])
 def download_database_pdf():
     try:
@@ -423,44 +463,18 @@ def download_database_pdf():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
-@app.route("/get_moisture_data", methods=["GET"])
-def get_moisture_data():
+@app.route("/delete_all_data", methods=["POST"])
+def delete_all_data():
     try:
-        all_data = MoistureSensorData.query.all()
-        results = [{"id": data.id, "moisture_level": data.moisture_level, "state": data.state, "date": data.date} for data in all_data]
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-    return jsonify({"moisture_data": results}), 200
-
-@app.route("/check_moisture", methods=["GET"])
-def check_moisture():
-    try:
-        mois = sensor.moisture
-        if mois:
-            if 0 <= mois < 300:
-                state = "dry"
-            elif 300 <= mois < 600:
-                state = "moist"
-            else:
-                state = "wet"
-            new_data = MoistureSensorData(moisture_level=mois, state=state)
-            db.session.add(new_data)
-            db.session.commit()
-            return jsonify({"moisture_level": mois, "state": state}), 200
-        else:
-            return jsonify({"message": "Failed to read Moisture sensor data"}), 400
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
-@app.route("/delete_moisture_data", methods=["POST"])
-def delete_moisture_data():
-    try:
-        MoistureSensorData.query.delete()
+        # Delete all records from the LightBulb table
+        LightBulb.query.delete()
         db.session.commit()
     except Exception as e:
         return jsonify({"message": str(e)}), 400
-    return jsonify({"message": "All moisture data deleted successfully!"}), 200
 
+    return jsonify({"message": "All data deleted successfully!"}), 200
+
+#relay routes------------------------------------------------------------------------------------------------
 @app.route("/get_contacts", methods=["GET"])
 def get_contacts():
     try:
@@ -503,40 +517,10 @@ def get_relay_status():
 
     return jsonify({"status": light_status}), 200
 
-@app.route("/delete_all_data", methods=["POST"])
-def delete_all_data():
-    try:
-        # Delete all records from the LightBulb table
-        LightBulb.query.delete()
-        db.session.commit()
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
-    return jsonify({"message": "All data deleted successfully!"}), 200
-
-
-# @app.route('/test')
-# def test():
-#     return {'message': 'Backend is working!'}
+#location routes------------------------------------------------------------------------------------------------
 @app.route("/get-location", methods=["GET"])
 def get_location_route():
     return jsonify(get_location())  
-
-def fetch_sensor_data():
-    while True:
-        try:
-            # Call the specified routes
-            # requests.post("http://127.0.0.1:5000/capture_photo")
-            requests.get("http://127.0.0.1:5000/get_ph")
-            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
-            requests.get("http://127.0.0.1:5000/get_tds")
-            requests.get("http://127.0.0.1:5000/check_moisture")
-        except Exception as e:
-            print(f"Error fetching sensor data: {e}")
-        
-        time.sleep(600) #10 mins
-
-
 
 
 if __name__ == "__main__":
