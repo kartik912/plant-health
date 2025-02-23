@@ -34,6 +34,21 @@ const Dashboard = () => {
     return isNaN(parsed) ? null : parsed;
   };
 
+  const getLatestValue = (data, key) => {
+    if (!data || data.length === 0) return null;
+    
+    // Start from the end of the array and find the first non-null value
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i] && data[i][key] !== null && data[i][key] !== undefined) {
+        return {
+          value: data[i][key],
+          time: data[i].time
+        };
+      }
+    }
+    return null;
+  };
+
   // Helper function to determine moisture state based on value
   const getMoistureState = (value) => {
     if (value === null || value === undefined) return "Unknown";
@@ -102,50 +117,50 @@ const Dashboard = () => {
         setSensorData(mergedData);
 
         // Update current sensor values with the latest historical data
-        if (mergedData.length > 0) {
-          const latestData = mergedData[mergedData.length - 1];
-          
-          // Log the moisture value we're trying to use
-          console.log("Latest moisture value:", latestData.moisture);
-          
-          const moistureValue = latestData.moisture !== null ? latestData.moisture : 0;
-          
-          setCurrentMoisture({
-            value: moistureValue,
-            state: getMoistureState(moistureValue),
-            time: latestData.time
-          });
-          
-          console.log("Setting current moisture to:", {
-            value: moistureValue,
-            state: getMoistureState(moistureValue),
-            time: latestData.time
-          });
-          
-          setCurrentTemperature({ 
-            value: latestData.temperature !== null ? latestData.temperature : 0, 
-            time: latestData.time 
-          });
-          
-          setCurrentHumidity({ 
-            value: latestData.humidity !== null ? latestData.humidity : 0, 
-            time: latestData.time 
-          });
-          
-          setCurrentPH({ 
-            value: latestData.ph !== null ? latestData.ph : 0, 
-            time: latestData.time 
-          });
-          
-          setCurrentTDS({ 
-            value: latestData.tds !== null ? latestData.tds : 0, 
-            time: latestData.time 
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching historical data:", error);
+        const latestMoisture = getLatestValue(mergedData, 'moisture');
+      if (latestMoisture) {
+        setCurrentMoisture(prev => ({
+          value: latestMoisture.value,
+          state: getMoistureState(latestMoisture.value),
+          time: latestMoisture.time
+        }));
       }
-    };
+
+      const latestTemperature = getLatestValue(mergedData, 'temperature');
+      if (latestTemperature) {
+        setCurrentTemperature(prev => ({
+          value: latestTemperature.value,
+          time: latestTemperature.time
+        }));
+      }
+
+      const latestHumidity = getLatestValue(mergedData, 'humidity');
+      if (latestHumidity) {
+        setCurrentHumidity(prev => ({
+          value: latestHumidity.value,
+          time: latestHumidity.time
+        }));
+      }
+
+      const latestPH = getLatestValue(mergedData, 'ph');
+      if (latestPH) {
+        setCurrentPH(prev => ({
+          value: latestPH.value,
+          time: latestPH.time
+        }));
+      }
+
+      const latestTDS = getLatestValue(mergedData, 'tds');
+      if (latestTDS) {
+        setCurrentTDS(prev => ({
+          value: latestTDS.value,
+          time: latestTDS.time
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching historical data:", error);
+    }
+  };
 
     fetchHistoricalData();
     const interval = setInterval(() => {
