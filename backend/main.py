@@ -23,9 +23,132 @@ import sys
 import io
 import threading
 import base64
+import lgpio
+import threading
+import signal
+import atexit
+
+#variable declare for pumps -----------------------------------------------------------------------------------------------
+# Define GPIO pins for motor control
+PUMP1_IN1 = 6   # GPIO6
+PUMP1_IN2 = 13  # GPIO13
+PUMP2_IN3 = 26  # GPIO26
+PUMP2_IN4 = 17  # GPIO17
+
+# second chip
+PUMP3_IN1 = 18  # GPIO18 (D7)
+PUMP3_IN2 = 19  # GPIO19 (PWM1)
+PUMP4_IN3 = 20  # GPIO20
+PUMP4_IN4 = 21  # GPIO21
+
+# Initialize lgpio
+h = lgpio.gpiochip_open(0)  # Open GPIO chip 0
+
+# Setup pins as outputs
+for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4]:
+    lgpio.gpio_claim_output(h, pin)
+
+# Motor status
+pump_status = {
+    "pump1": "stopped",
+    "pump2": "stopped",
+    "pump3": "stopped",
+    "pump4": "stopped"
+}
+
+# Lock for thread safety
+pump_lock = threading.Lock()
 
 #functions-------------------------------------------------------------------------------------------------------
-    # to keep fetching data from sensors-----------------------------------------------------
+# Pump control functions----------------------------------------------------------------------------------------------------
+def pump1_forward():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP1_IN1, 1)  # HIGH
+        lgpio.gpio_write(h, PUMP1_IN2, 0)  # LOW
+        pump_status["pump1"] = "running"
+
+def pump1_stop():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP1_IN1, 0)  # LOW
+        lgpio.gpio_write(h, PUMP1_IN2, 0)  # LOW
+        pump_status["pump1"] = "stopped"
+    
+def pump2_forward():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP2_IN3, 1)  # HIGH
+        lgpio.gpio_write(h, PUMP2_IN4, 0)  # LOW
+        pump_status["pump2"] = "running"
+
+def pump2_stop():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP2_IN3, 0)  # LOW
+        lgpio.gpio_write(h, PUMP2_IN4, 0)  # LOW
+        pump_status["pump2"] = "stopped"
+
+def pump3_forward():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP3_IN1, 1)  # HIGH
+        lgpio.gpio_write(h, PUMP3_IN2, 0)  # LOW
+        pump_status["pump3"] = "running"
+
+def pump3_stop():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP3_IN1, 0)  # LOW
+        lgpio.gpio_write(h, PUMP3_IN2, 0)  # LOW
+        pump_status["pump3"] = "stopped"
+
+def pump4_forward():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP4_IN3, 1)  # HIGH
+        lgpio.gpio_write(h, PUMP4_IN4, 0)  # LOW
+        pump_status["pump4"] = "running"
+
+def pump4_stop():
+    with pump_lock:
+        lgpio.gpio_write(h, PUMP4_IN3, 0)  # LOW
+        lgpio.gpio_write(h, PUMP4_IN4, 0)  # LOW
+        pump_status["pump4"] = "stopped"
+
+# Function to auto-stop a pump after a specified duration
+def auto_stop_pump(pump_number, duration):
+    if pump_number == 1:
+        time.sleep(duration)
+        pump1_stop()
+    elif pump_number == 2:
+        time.sleep(duration)
+        pump2_stop()
+    elif pump_number == 3:
+        time.sleep(duration)
+        pump3_stop()
+    elif pump_number == 4:
+        time.sleep(duration)
+        pump4_stop()
+
+def cleanup_gpio():
+    global h  # Make sure h is accessed as a global variable
+    try:
+        # Stop all pumps
+        pump1_stop()
+        pump2_stop()
+        pump3_stop()
+        pump4_stop()
+        
+        # Free all pins and close the chip
+        for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4]:
+            try:
+                lgpio.gpio_free(h, pin)
+            except Exception:
+                pass  # Ignore errors if pins are already freed
+                
+        try:
+            lgpio.gpiochip_close(h)
+            h = None  # Set to None to indicate it's closed
+        except Exception:
+            pass  # Ignore errors if chip is already closed
+            
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+# to keep fetching data from sensors-----------------------------------------------------
 def fetch_sensor_data():
     while True:
         try:
@@ -39,6 +162,8 @@ def fetch_sensor_data():
             print(f"Error fetching sensor data: {e}")
         
         time.sleep(600) #10 mins
+
+
     
 # function to fetch locations --------------------------------------------------------
 def get_public_ip():
@@ -163,6 +288,115 @@ sensor = GroveMoistureSensor(0)
 
 # #servo setup
 # servo = Servo(12)
+
+
+#pump routes
+# Flask routes for pump control
+@app.route("/pump/<int:pump_id>/start", methods=["POST"])
+def start_pump(pump_id):
+    try:
+        # Get duration from request (default: 5 seconds)
+        data = request.get_json() or {}
+        duration = data.get("duration", 5)
+        
+        # Start pump
+        if pump_id == 1:
+            pump1_forward()
+        elif pump_id == 2:
+            pump2_forward()
+        elif pump_id == 3:
+            pump3_forward()
+        elif pump_id == 4:
+            pump4_forward()
+        else:
+            return jsonify({"message": f"Invalid pump ID: {pump_id}"}), 400
+            
+        # Start a timer to auto-stop the pump after specified duration
+        if duration > 0:
+            stop_thread = threading.Thread(target=auto_stop_pump, args=(pump_id, duration))
+            stop_thread.daemon = True
+            stop_thread.start()
+            
+        return jsonify({
+            "message": f"Pump {pump_id} started",
+            "status": "running",
+            "auto_stop": duration if duration > 0 else "disabled"
+        }), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/pump/<int:pump_id>/stop", methods=["POST"])
+def stop_pump(pump_id):
+    try:
+        # Stop pump
+        if pump_id == 1:
+            pump1_stop()
+        elif pump_id == 2:
+            pump2_stop()
+        elif pump_id == 3:
+            pump3_stop()
+        elif pump_id == 4:
+            pump4_stop()
+        else:
+            return jsonify({"message": f"Invalid pump ID: {pump_id}"}), 400
+            
+        return jsonify({
+            "message": f"Pump {pump_id} stopped",
+            "status": "stopped"
+        }), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/pump/status", methods=["GET"])
+def get_pump_status():
+    try:
+        return jsonify(pump_status), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/pump/all/start", methods=["POST"])
+def start_all_pumps():
+    try:
+        # Get duration from request (default: 5 seconds)
+        data = request.get_json() or {}
+        duration = data.get("duration", 5)
+        
+        # Start all pumps
+        pump1_forward()
+        pump2_forward()
+        pump3_forward()
+        pump4_forward()
+        
+        # Start a timer to auto-stop all pumps after specified duration
+        if duration > 0:
+            for pump_id in range(1, 5):
+                stop_thread = threading.Thread(target=auto_stop_pump, args=(pump_id, duration))
+                stop_thread.daemon = True
+                stop_thread.start()
+            
+        return jsonify({
+            "message": "All pumps started",
+            "status": "running",
+            "auto_stop": duration if duration > 0 else "disabled"
+        }), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/pump/all/stop", methods=["POST"])
+def stop_all_pumps():
+    try:
+        # Stop all pumps
+        pump1_stop()
+        pump2_stop()
+        pump3_stop()
+        pump4_stop()
+            
+        return jsonify({
+            "message": "All pumps stopped",
+            "status": "stopped"
+        }), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 # Camera route -------------------------------------------------------------------------------------------------------
 @app.route("/start_stream", methods=["POST"])
@@ -522,6 +756,16 @@ def get_relay_status():
 def get_location_route():
     return jsonify(get_location())  
 
+
+atexit.register(cleanup_gpio)
+
+def signal_handler(sig, frame):
+    print("Shutting down gracefully...")
+    try:
+        cleanup_gpio()
+    except Exception as e:
+        print(f"Error in signal handler: {e}")
+    sys.exit(0)
 
 if __name__ == "__main__":
     with app.app_context():
