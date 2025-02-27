@@ -5,6 +5,8 @@ import MoistureSensor from './components/MoistureSensor'
 import Temperature from './components/Temperature'
 import TDS from './components/TDS'
 import Dashboard from './components/Dashboard'
+import Pump from './components/Pump'
+
 const Layout = () => {
   return (
     <>
@@ -14,6 +16,7 @@ const Layout = () => {
         <Temperature/>
         <TDS/>
         <Dashboard/>
+        <Pump/>
     </>
   )
 }

@@ -1,0 +1,43 @@
+/* Status indicator for pumps */
+.status-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .status-indicator.on {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  }
+  
+  .status-indicator.off {
+    background: linear-gradient(135deg, #F44336, #C62828);
+  }
+  
+  .status-indicator.running {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    animation: pulse 1.5s infinite;
+  }
+  
+  .status-indicator.stopped {
+    background: linear-gradient(135deg, #F44336, #C62828);
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    }
+  }
+  
+  /* Hover effects */
+  .toggle-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  }

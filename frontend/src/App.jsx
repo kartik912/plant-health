@@ -11,6 +11,7 @@ import NavBar from "./components/NavBar";
 import History from "./pages/History";
 import PHSensor from "./components/PhSensor";
 import Dashboard from "./components/Dashboard";
+import Pump from './components/Pump';
 
 const SensorDashboard = () => {
   const [isLiveStreaming, setIsLiveStreaming] = useState(false);
@@ -44,6 +45,7 @@ const SensorDashboard = () => {
             <Route path="/tds" element={<TDS/>}/>
             <Route path="/ph" element={<PHSensor/>}/>
             <Route path="/dashboard" element={<Dashboard/>}/>
+            <Route path="/pump" element={<Pump/>}/>
             <Route path="/*" element={<Navigate to="/dashboard"/>}/>
           </Routes>
         </div>

@@ -36,7 +36,8 @@ const NavBar = () => {
     { to: "/moist", text: "Moisture" },
     { to: "/tds", text: "TDS" },
     { to: "/ph", text: "PH Level" },
-    { to: "/history", text: "History" }
+    { to: "/history", text: "History" },
+    { to: "/pump", text: "Pump" }
   ];
 
   return (
