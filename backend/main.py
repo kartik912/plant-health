@@ -47,7 +47,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(5) #10 mins
+        time.sleep(600) #10 mins
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 6   # GPIO6
