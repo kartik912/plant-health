@@ -190,7 +190,7 @@ const Pump = (props) => {
         {/* Header Section */}
         <div className="mb-8 mt-12 md:mt-2">
           <h2 className="text-2xl md:text-3xl font-bold text-white">Pump Control System</h2>
-          <p className="text-slate-400 mt-2">Monitor and control your plant watering system</p>
+          <p className="text-slate-400 mt-2">Monitor and control your hydrophonic system</p>
           
           {/* System Overview Card */}
           <div className="mt-6 bg-gradient-to-r from-slate-800/80 to-slate-900/80 rounded-xl p-4 border border-slate-700/30 shadow-lg">

@@ -12,11 +12,10 @@ class SensorMonitor:
         
         # Define sensor thresholds and timeout values
         self.thresholds = {
-            'temperature': {'min': -10, 'max': 50},  # °C
+            'temperature': {'min': -10, 'max': 100},  # °C
             'humidity': {'min': 0, 'max': 100},  # %
-            'moisture': {'min': 0, 'max': 950},  # Grove sensor range
-            'tds': {'min': 0, 'max': 1000},  # ppm
-            'ph': {'min': 0, 'max': 14}  # pH scale
+            'tds': {'min': 0, 'max': 2000},  # ppm
+            'ph': {'min': 0, 'max': 20}  # pH scale
         }
         
         # Track sensor fault states and notification times
@@ -43,9 +42,9 @@ class SensorMonitor:
             default_config = {
                 'smtp_server': 'smtp.gmail.com',
                 'smtp_port': 587,
-                'sender_email': 'your-email@gmail.com',
-                'sender_password': 'your-app-specific-password',
-                'recipient_email': 'recipient@example.com'
+                'sender_email': 'kartik134yadav@gmail.com',
+                'sender_password': 'yttu pnfp vbzt xake',
+                'recipient_email': 'kar9877ml@gmail.com'
             }
             with open('email_config.json', 'w') as f:
                 json.dump(default_config, f, indent=4)
@@ -155,13 +154,6 @@ def check_sensors():
             monitor.check_sensor_reading('humidity', humidity)
         except Exception as e:
             monitor.send_email_alert('DHT11', f"Failed to read temperature/humidity: {str(e)}")
-        
-        # Check Moisture
-        try:
-            moisture = sensor.moisture
-            monitor.check_sensor_reading('moisture', moisture)
-        except Exception as e:
-            monitor.send_email_alert('Moisture Sensor', f"Failed to read moisture: {str(e)}")
         
         # Check TDS
         try:

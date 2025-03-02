@@ -1,4 +1,5 @@
 from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData, SensorLimits
+from checkSensorMail import SensorMonitor
 from reportlab.lib.pagesizes import letter
 from flask import request, jsonify, Flask, send_file, Response
 from flask_socketio import SocketIO
@@ -40,11 +41,13 @@ def fetch_sensor_data():
             requests.get("http://127.0.0.1:5000/check_moisture")
 
             requests.post("http://127.0.0.1:5000/check_and_adjust_sensors")
+            requests.post("http://127.0.0.1:5000/status_mail")
+            
             
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(600) #10 mins
+        time.sleep(5) #10 mins
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 6   # GPIO6
@@ -77,6 +80,8 @@ pump_status = {
 pump_lock = threading.Lock()
 
 #functions-------------------------------------------------------------------------------------------------------
+
+
 # Pump control functions----------------------------------------------------------------------------------------------------
 def check_and_adjust_sensors():
     """Check pH and TDS readings against set limits and activate pumps if needed"""
@@ -364,14 +369,55 @@ RELAY_PIN = 16
 relay = OutputDevice(RELAY_PIN)
 
 # #temperature and humidity sensor
-
+dht_sensor = adafruit_dht.DHT11(board.D5)
 
 # # Moisture sensor setupddd
 sensor = GroveMoistureSensor(0)
 
 # #servo setup
 # servo = Servo(12)
+#message sending function----------------------------------------------------------------------
+def check_sensors():
+    """Main function to check all sensors"""
+    monitor = SensorMonitor()
+    
+    try:
+        # Check Temperature & Humidity
+        try:
+            temperature = dht_sensor.temperature
+            humidity = dht_sensor.humidity
+            monitor.check_sensor_reading('temperature', temperature)
+            monitor.check_sensor_reading('humidity', humidity)
+        except Exception as e:
+            monitor.send_email_alert('DHT11', f"Failed to read temperature/humidity: {str(e)}")
+        
+        # Check TDS
+        try:
+            tds_value = tdssensor.TDS
+            monitor.check_sensor_reading('tds', tds_value)
+        except Exception as e:
+            monitor.send_email_alert('TDS Sensor', f"Failed to read TDS: {str(e)}")
+        
+        # Check pH
+        try:
+            raw_voltage = adc.read_voltage(4)
+            voltage = (raw_voltage * 5.0 / 4095.0) - 0.354
+            ph_val = 7 + ((2.5 - voltage) / 0.18)
+            monitor.check_sensor_reading('ph', ph_val)
+        except Exception as e:
+            monitor.send_email_alert('pH Sensor', f"Failed to read pH: {str(e)}")
+            
+    except Exception as e:
+        print(f"Error in sensor monitoring: {str(e)}")
 
+#mail route
+@app.route("/status_mail", methods=["POST"])
+def check_status_mail():
+    try:
+        check_sensors()
+        return jsonify({"message": "Sensor status check done successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 #pump routes----------------------------------------------------------------------------------------------
 @app.route("/check_and_adjust_sensors", methods=["POST"])
@@ -730,7 +776,7 @@ def get_latest_photo():
 @app.route("/get_temperature_humidity", methods=["GET"])
 def get_temperature_humidity():
     try:
-        dht_sensor = adafruit_dht.DHT11(board.D5)
+        
         temperature = dht_sensor.temperature
         humidity = dht_sensor.humidity
 
