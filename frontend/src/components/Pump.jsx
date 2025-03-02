@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import './pump.css';
+// import './pump.css';
 
 const Pump = (props) => {
   const [pumpStatus, setPumpStatus] = useState({

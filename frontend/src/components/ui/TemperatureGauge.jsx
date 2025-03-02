@@ -33,13 +33,13 @@ const TemperatureGauge = ({ value, time }) => {
         </div>
 
         {/* Scale markers with improved styling */}
-        <div className="w-full relative mt-2">
+        {/* <div className="w-full relative mt-2">
           <div className="absolute left-6 -top-20 text-slate-400 text-xs">0</div>
           <div className="absolute left-[20%] -top-28 text-slate-400 text-xs">20</div>
           <div className="absolute left-[30%] -top-32 transform -translate-x-1/2 text-slate-400 text-xs">30</div>
           <div className="absolute left-[60%] -top-32 transform -translate-x-1/2 text-slate-400 text-xs">60</div>
           <div className="absolute right-6 -top-20 text-slate-400 text-xs">100</div>
-        </div>
+        </div> */}
 
         {/* Value display below gauge */}
         <div className="mt-6 text-center bg-slate-700/30 px-6 py-3 rounded-lg">

@@ -161,7 +161,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(600) #10 mins
+        time.sleep(5) #10 mins
 
 
     
@@ -281,9 +281,9 @@ RELAY_PIN = 16
 relay = OutputDevice(RELAY_PIN)
 
 # #temperature and humidity sensor
-dht_sensor = adafruit_dht.DHT11(board.D5)
+dht_sensor = adafruit_dht.DHT11(board.D5)sdfsdf
 
-# # Moisture sensor setup
+# # Moisture sensor setupddd
 sensor = GroveMoistureSensor(0)
 
 # #servo setup

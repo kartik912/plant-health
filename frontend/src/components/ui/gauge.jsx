@@ -33,12 +33,12 @@ const Gauge = ({ value, time }) => {
         </div>
 
         {/* Scale markers with improved styling */}
-        <div className="w-full relative mt-2">
+        {/* <div className="w-full relative mt-2">
           <div className="absolute left-6 -top-24 text-slate-400 text-xs">0</div>
           <div className="absolute left-1/4 -top-28 text-slate-400 text-xs">5</div>
           <div className="absolute left-1/2 -top-32 transform -translate-x-1/2 text-slate-400 text-xs">7.5</div>
           <div className="absolute right-6 -top-24 text-slate-400 text-xs">14</div>
-        </div>
+        </div> */}
 
         {/* Value display below gauge */}
         <div className="mt-6 text-center bg-slate-700/30 px-6 py-3 rounded-lg">
