@@ -6,6 +6,7 @@ import Temperature from './components/Temperature'
 import TDS from './components/TDS'
 import Dashboard from './components/Dashboard'
 import Pump from './components/Pump'
+import './style.css'
 
 const Layout = () => {
   return (

@@ -1,0 +1,41 @@
+/* Enhanced scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;               /* Thinner scrollbar for a modern look */
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 241, 241, 0.1);  /* Subtle, semi-transparent track */
+  border-radius: 8px;
+  margin: 4px 0;            /* Add some space around the track */
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #51cff5, #2E7D32);  /* Green gradient to match plant theme */
+  border-radius: 8px;
+  border: 2px solid transparent;  /* Creates padding effect */
+  background-clip: content-box;   /* Ensures the gradient only shows in the visible area */
+  transition: background 0.3s;    /* Smooth transition on hover */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #2E7D32, #1B5E20);  /* Darker on hover */
+  background-clip: content-box;
+}
+
+/* Hide scrollbar when not scrolling but keep functionality */
+.scroll-container {
+  scrollbar-width: thin;      /* For Firefox */
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.scroll-container:not(:hover)::-webkit-scrollbar-thumb {
+  background: rgba(46, 125, 50, 0.5);  /* More transparent when not hovering */
+  background-clip: content-box;
+}
+
+/* For Firefox */
+.scroll-container {
+  scrollbar-color: #4ac0ee rgba(241, 241, 241, 0.1);
+}

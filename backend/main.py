@@ -1,4 +1,4 @@
-from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData
+from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData, SensorLimits
 from reportlab.lib.pagesizes import letter
 from flask import request, jsonify, Flask, send_file, Response
 from flask_socketio import SocketIO
@@ -28,6 +28,23 @@ import threading
 import signal
 import atexit
 
+# to keep fetching data from sensors-----------------------------------------------------
+def fetch_sensor_data():
+    while True:
+        try:
+            # Call the specified routes
+            # requests.post("http://127.0.0.1:5000/capture_photo")
+            requests.get("http://127.0.0.1:5000/get_ph")
+            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
+            requests.get("http://127.0.0.1:5000/get_tds")
+            requests.get("http://127.0.0.1:5000/check_moisture")
+
+            requests.post("http://127.0.0.1:5000/check_and_adjust_sensors")
+            
+        except Exception as e:
+            print(f"Error fetching sensor data: {e}")
+        
+        time.sleep(600) #10 mins
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 6   # GPIO6
@@ -61,6 +78,86 @@ pump_lock = threading.Lock()
 
 #functions-------------------------------------------------------------------------------------------------------
 # Pump control functions----------------------------------------------------------------------------------------------------
+def check_and_adjust_sensors():
+    """Check pH and TDS readings against set limits and activate pumps if needed"""
+    # Import Flask app at the function level to avoid circular imports
+    
+            # Get latest sensor readings
+    ph_data = PHData.query.order_by(PHData.id.desc()).first()
+    tds_data = TDSData.query.order_by(TDSData.id.desc()).first()
+    
+    # Get sensor limits
+    ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
+    tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+    
+    # Default limits if none are set
+    ph_min = 5.5
+    ph_max = 7.5
+    ph_active = True
+    tds_min = 500
+    tds_max = 1500
+    tds_active = True
+    
+    # Update with database values if available
+    if ph_limit:
+        ph_min = ph_limit.min_value
+        ph_max = ph_limit.max_value
+        ph_active = ph_limit.is_active
+        
+    if tds_limit:
+        tds_min = tds_limit.min_value
+        tds_max = tds_limit.max_value
+        tds_active = tds_limit.is_active
+    
+    # Check pH levels and adjust if needed
+    if ph_data and ph_active:
+        ph_value = ph_data.ph_value
+        
+        if ph_value < ph_min:
+            # pH too low, activate pump 3 (base pump)
+            print(f"pH {ph_value} below minimum {ph_min}, activating pump 3")
+            pump3_forward()
+            time.sleep(5)
+            pump3_stop()
+            
+        elif ph_value > ph_max:
+            # pH too high, activate pump 4 (acid pump)
+            print(f"pH {ph_value} above maximum {ph_max}, activating pump 4")
+            pump4_forward()
+            time.sleep(5)   
+            pump4_stop()
+            # Start a timer to auto-stop the pump after 5 seconds
+            # stop_thread = threading.Thread(target=auto_stop_pump, args=(4, 5))
+            # stop_thread.daemon = True
+            # stop_thread.start()
+    
+    # Check TDS levels and adjust if needed
+    if tds_data and tds_active:
+        tds_value = tds_data.tds_value
+        
+        if tds_value < tds_min:
+            # TDS too low, activate pump 1 (nutrient pump)
+            print(f"TDS {tds_value} below minimum {tds_min}, activating pump 1")
+            pump1_forward()
+            time.sleep(5)
+            pump1_stop()
+            # Start a timer to auto-stop the pump after 5 seconds
+            # stop_thread = threading.Thread(target=auto_stop_pump, args=(1, 5))
+            # stop_thread.daemon = True
+            # stop_thread.start()
+            
+        elif tds_value > tds_max:
+            # TDS too high, activate pump 2 (water pump to dilute)
+            print(f"TDS {tds_value} above maximum {tds_max}, activating pump 2")
+            pump2_forward()
+            time.sleep(5)
+            pump2_stop()
+            # Start a timer to auto-stop the pump after 5 seconds
+            # stop_thread = threading.Thread(target=auto_stop_pump, args=(2, 5))
+            # stop_thread.daemon = True
+            # stop_thread.start()
+            
+
 def pump1_forward():
     with pump_lock:
         lgpio.gpio_write(h, PUMP1_IN1, 1)  # HIGH
@@ -148,20 +245,6 @@ def cleanup_gpio():
             
     except Exception as e:
         print(f"Error during cleanup: {e}")
-# to keep fetching data from sensors-----------------------------------------------------
-def fetch_sensor_data():
-    while True:
-        try:
-            # Call the specified routes
-            # requests.post("http://127.0.0.1:5000/capture_photo")
-            requests.get("http://127.0.0.1:5000/get_ph")
-            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
-            requests.get("http://127.0.0.1:5000/get_tds")
-            requests.get("http://127.0.0.1:5000/check_moisture")
-        except Exception as e:
-            print(f"Error fetching sensor data: {e}")
-        
-        time.sleep(5) #10 mins
 
 
     
@@ -281,7 +364,7 @@ RELAY_PIN = 16
 relay = OutputDevice(RELAY_PIN)
 
 # #temperature and humidity sensor
-dht_sensor = adafruit_dht.DHT11(board.D5)sdfsdf
+
 
 # # Moisture sensor setupddd
 sensor = GroveMoistureSensor(0)
@@ -290,7 +373,170 @@ sensor = GroveMoistureSensor(0)
 # servo = Servo(12)
 
 
-#pump routes
+#pump routes----------------------------------------------------------------------------------------------
+@app.route("/check_and_adjust_sensors", methods=["POST"])
+def manual_check_and_adjust():
+    try:
+        check_and_adjust_sensors()
+        return jsonify({"message": "Sensor check and adjustment completed successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/sensor_status", methods=["GET"])
+def get_sensor_status():
+    try:
+        # Get latest sensor readings
+        ph_data = PHData.query.order_by(PHData.id.desc()).first()
+        tds_data = TDSData.query.order_by(TDSData.id.desc()).first()
+        
+        # Get sensor limits
+        ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
+        tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+        
+        # Default limits if none are set
+        ph_limits = {"min": 5.5, "max": 7.5, "active": True}
+        tds_limits = {"min": 500, "max": 1500, "active": True}
+        
+        # Update with database values if available
+        if ph_limit:
+            ph_limits = {
+                "min": ph_limit.min_value,
+                "max": ph_limit.max_value,
+                "active": ph_limit.is_active
+            }
+            
+        if tds_limit:
+            tds_limits = {
+                "min": tds_limit.min_value,
+                "max": tds_limit.max_value,
+                "active": tds_limit.is_active
+            }
+        
+        # Format current sensor values
+        current_ph = None
+        current_tds = None
+        ph_status = "Not available"
+        tds_status = "Not available"
+        
+        if ph_data:
+            current_ph = ph_data.ph_value
+            if ph_limits["active"]:
+                if current_ph < ph_limits["min"]:
+                    ph_status = "Low"
+                elif current_ph > ph_limits["max"]:
+                    ph_status = "High"
+                else:
+                    ph_status = "Normal"
+            else:
+                ph_status = "Monitoring inactive"
+        
+        if tds_data:
+            current_tds = tds_data.tds_value
+            if tds_limits["active"]:
+                if current_tds < tds_limits["min"]:
+                    tds_status = "Low"
+                elif current_tds > tds_limits["max"]:
+                    tds_status = "High"
+                else:
+                    tds_status = "Normal"
+            else:
+                tds_status = "Monitoring inactive"
+        
+        return jsonify({
+            "ph": {
+                "value": current_ph,
+                "limits": ph_limits,
+                "status": ph_status,
+                "last_updated": None
+            },
+            "tds": {
+                "value": current_tds,
+                "limits": tds_limits,
+                "status": tds_status,
+                "last_updated": None
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/sensor/limits", methods=["GET"])
+def get_sensor_limits():
+    try:
+        # Fetch all sensor limits
+        all_limits = SensorLimits.query.all()
+        
+        # Convert to dictionary for easier access in frontend
+        limits_dict = {}
+        for limit in all_limits:
+            limits_dict[limit.sensor_type] = {
+                "min": limit.min_value,
+                "max": limit.max_value,
+                "active": limit.is_active
+            }
+        
+        # Add default values if not found
+        if "ph" not in limits_dict:
+            limits_dict["ph"] = {"min": 5.5, "max": 7.5, "active": True}
+        if "tds" not in limits_dict:
+            limits_dict["tds"] = {"min": 500, "max": 1500, "active": True}
+            
+        return jsonify(limits_dict), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+# Update sensor limits
+@app.route("/sensor/limits", methods=["POST"])
+def update_sensor_limits():
+    try:
+        data = request.get_json()
+        
+        # Update pH limits
+        if "ph" in data:
+            ph_data = data["ph"]
+            ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
+            
+            if ph_limit:
+                # Update existing record
+                ph_limit.min_value = ph_data["min"]
+                ph_limit.max_value = ph_data["max"]
+                ph_limit.is_active = ph_data["active"]
+                ph_limit.updated_at = datetime.now()
+            else:
+                # Create new record
+                ph_limit = SensorLimits(
+                    sensor_type="ph",
+                    min_value=ph_data["min"],
+                    max_value=ph_data["max"],
+                    is_active=ph_data["active"]
+                )
+                db.session.add(ph_limit)
+        
+        # Update TDS limits
+        if "tds" in data:
+            tds_data = data["tds"]
+            tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+            
+            if tds_limit:
+                # Update existing record
+                tds_limit.min_value = tds_data["min"]
+                tds_limit.max_value = tds_data["max"]
+                tds_limit.is_active = tds_data["active"]
+                tds_limit.updated_at = datetime.now()
+            else:
+                # Create new record
+                tds_limit = SensorLimits(
+                    sensor_type="tds",
+                    min_value=tds_data["min"],
+                    max_value=tds_data["max"],
+                    is_active=tds_data["active"]
+                )
+                db.session.add(tds_limit)
+        
+        db.session.commit()
+        return jsonify({"message": "Sensor limits updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
 # Flask routes for pump control
 @app.route("/pump/<int:pump_id>/start", methods=["POST"])
 def start_pump(pump_id):
@@ -484,8 +730,12 @@ def get_latest_photo():
 @app.route("/get_temperature_humidity", methods=["GET"])
 def get_temperature_humidity():
     try:
+        dht_sensor = adafruit_dht.DHT11(board.D5)
         temperature = dht_sensor.temperature
         humidity = dht_sensor.humidity
+
+        dht_sensor.exit()
+
         
         if temperature is not None and humidity is not None:
             # Store sensor data
@@ -750,6 +1000,8 @@ def get_relay_status():
         return jsonify({"message": str(e)}), 400
 
     return jsonify({"status": light_status}), 200
+
+
 
 #location routes------------------------------------------------------------------------------------------------
 @app.route("/get-location", methods=["GET"])

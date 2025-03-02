@@ -79,3 +79,22 @@ class PHData(db.Model):
             "ph_value": self.ph_value,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         }
+
+
+class SensorLimits(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sensor_type = db.Column(db.String(10), nullable=False)  # 'ph' or 'tds'
+    min_value = db.Column(db.Float, nullable=False)
+    max_value = db.Column(db.Float, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
+    
+    def to_json(self):
+        return {
+            "id": self.id,
+            "sensor_type": self.sensor_type,
+            "min_value": self.min_value,
+            "max_value": self.max_value,
+            "is_active": self.is_active,
+            "updated_at": self.updated_at
+        }

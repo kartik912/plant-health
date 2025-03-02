@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import io from 'socket.io-client/dist/socket.io.js';
-import "./SensorDashboard.css";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PlantCamera from "./components/PlantCamera";
 import LightControl from "./components/LightControl";
@@ -12,23 +10,9 @@ import History from "./pages/History";
 import PHSensor from "./components/PhSensor";
 import Dashboard from "./components/Dashboard";
 import Pump from './components/Pump';
+import './style.css';
 
 const SensorDashboard = () => {
-  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
-  const [socket, setSocket] = useState(null);
-
-  // useEffect(() => {
-  //   const testBackend = async () => {
-  //     try {
-  //       const response = await fetch("http://127.0.0.1:5000/test");
-  //       const data = await response.json();
-  //     } catch (error) {
-  //       console.error("Backend test error:", error);
-  //     }
-  //   };
-    
-  //   testBackend();
-  // }, []);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#1E3E62]">
