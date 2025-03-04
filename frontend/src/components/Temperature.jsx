@@ -23,7 +23,7 @@ const Temperature = () => {
     const fetchTemperatureHumidityData = async () => {
       try {
         // Only fetch the history data
-        const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
+        const historyResponse = await fetch("https://api.hydrophonic.site/get_temperature_humidity_history");
         const historyData = await historyResponse.json();
         
         const formattedData = historyData.temperature_humidity_data.map((item) => ({

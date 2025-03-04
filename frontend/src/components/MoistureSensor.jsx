@@ -21,7 +21,7 @@ const MoistureSensor = () => {
   useEffect(() => {
     const fetchMoistureData = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_moisture_data");
+        const response = await fetch("https://api.hydrophonic.sitefsda/get_moisture_data");
         const data = await response.json();
         const formattedData = data.moisture_data.map((item) => ({
           time: new Date(item.date).toLocaleTimeString(),
@@ -40,6 +40,7 @@ const MoistureSensor = () => {
             level: latestEntry.level,
             state: latestEntry.state
           });
+          
         }
       } catch (error) {
         console.error("Error fetching moisture data:", error);

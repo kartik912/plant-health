@@ -9,7 +9,7 @@ const LightControl = (props) => {
 
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/toggle_relay", {
+      const response = await fetch("https://api.hydrophonic.site/toggle_relay", {
         method: "POST",
       });
       if (response.ok) {
@@ -24,7 +24,7 @@ const LightControl = (props) => {
 
   const deleteLightHistory = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/delete_all_data", {
+      const response = await fetch("https://api.hydrophonic.site/delete_all_data", {
         method: "POST",
       });
       if (response.ok) {
@@ -39,7 +39,7 @@ const LightControl = (props) => {
   // useEffect(() => {
   //   const pollLightStatus = async () => {
   //     try {
-  //       const response = await fetch("http://127.0.0.1:5000/get_relay_status");
+  //       const response = await fetch("https://api.hydrophonic.site/get_relay_status");
   //       const data = await response.json();
   //       setLightStatus(data.status);
   //     } catch (error) {
@@ -56,7 +56,7 @@ const LightControl = (props) => {
 
   // const fetchLightHistory = async () => {
   //   try {
-  //     const response = await fetch("http://127.0.0.1:5000/get_contacts");
+  //     const response = await fetch("https://api.hydrophonic.site/get_contacts");
   //     const data = await response.json();
   //     setLightData(data.contacts);
   //   } catch (error) {

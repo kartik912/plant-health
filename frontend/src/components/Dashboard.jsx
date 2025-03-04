@@ -68,10 +68,10 @@ const Dashboard = () => {
     const fetchHistoricalData = async () => {
       try {
         const [tempHumHistoryRes, moistureHistoryRes, phHistoryRes, tdsHistoryRes] = await Promise.all([
-          fetch("http://127.0.0.1:5000/get_temperature_humidity_history"),
-          fetch("http://127.0.0.1:5000/get_moisture_data"),
-          fetch("http://127.0.0.1:5000/get_ph_history"),
-          fetch("http://127.0.0.1:5000/get_tds_history")
+          fetch("https://api.hydrophonic.site/get_temperature_humidity_history"),
+          fetch("https://api.hydrophonic.site/get_moisture_data"),
+          fetch("https://api.hydrophonic.site/get_ph_history"),
+          fetch("https://api.hydrophonic.site/get_tds_history")
         ]);
 
         const tempHumHistory = await tempHumHistoryRes.json();

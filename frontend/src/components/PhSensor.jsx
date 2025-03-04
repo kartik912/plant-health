@@ -21,7 +21,7 @@ const PHSensor = () => {
   useEffect(() => {
     const fetchPHHistoryData = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_ph_history");
+        const response = await fetch("https://api.hydrophonic.site/get_ph_history");
         const data = await response.json();
         const formattedData = data.ph_data.map((item) => {
           const phValue = parseFloat(item.ph_value);

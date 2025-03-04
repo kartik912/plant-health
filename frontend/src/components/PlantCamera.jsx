@@ -15,7 +15,7 @@ const PlantCamera = () => {
 
     let socket;
     if (isLiveStreaming) {
-      socket = io('http://127.0.0.1:5000', {
+      socket = io('https://api.hydrophonic.site', {
         transports: ['websocket'],
         reconnectionAttempts: 5
       });
@@ -42,7 +42,7 @@ const PlantCamera = () => {
 
   const fetchLightStatus = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/get_relay_status');
+      const response = await fetch('https://api.hydrophonic.site/get_relay_status');
       if (response.ok) {
         const data = await response.json();
         setLightStatus(data.status);
@@ -54,7 +54,7 @@ const PlantCamera = () => {
 
   const toggleLight = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/toggle_relay', {
+      const response = await fetch('https://api.hydrophonic.site/toggle_relay', {
         method: 'POST',
       });
       if (response.ok) {
@@ -69,12 +69,12 @@ const PlantCamera = () => {
   const capturePhoto = async () => {
     try {
       setIsCapturing(true);
-      const response = await fetch('http://127.0.0.1:5000/capture_photo', {
+      const response = await fetch('https://api.hydrophonic.site/capture_photo', {
         method: 'POST',
       });
 
       if (response.ok) {
-        const photoResponse = await fetch('http://127.0.0.1:5000/get_latest_photo');
+        const photoResponse = await fetch('https://api.hydrophonic.site/get_latest_photo');
         if (photoResponse.ok) {
           const blob = await photoResponse.blob();
           const imageUrl = URL.createObjectURL(blob);
@@ -91,11 +91,11 @@ const PlantCamera = () => {
   const toggleLiveStream = async () => {
     try {
       if (isLiveStreaming) {
-        await fetch('http://127.0.0.1:5000/stop_stream', { method: 'POST' });
+        await fetch('https://api.hydrophonic.site/stop_stream', { method: 'POST' });
         setIsLiveStreaming(false);
         setLiveStreamFrame(null);
       } else {
-        await fetch('http://127.0.0.1:5000/start_stream', { method: 'POST' });
+        await fetch('https://api.hydrophonic.site/start_stream', { method: 'POST' });
         setIsLiveStreaming(true);
       }
     } catch (error) {

@@ -17,7 +17,7 @@ const TDS = () => {
   useEffect(() => {
     const fetchTDSData = async () => {
       try {
-        const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
+        const historyResponse = await fetch("https://api.hydrophonic.site/get_tds_history");
         const historyData = await historyResponse.json();
         const formattedData = historyData.tds_data.map(item => ({
           time: new Date(item.date).toLocaleTimeString(),
