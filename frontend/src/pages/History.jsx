@@ -6,11 +6,12 @@ const History = () => {
   const [moistureData, setMoistureData] = useState([]);
   const [tdsData, setTdsData] = useState([]);
   const [phData, setPHData] = useState([]);
+  const url = import.meta.env.VITE_API_URL;
   
   const deleteTemperatureHumidityHistory = async () => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/delete_temperature_humidity_data",
+        `${url}/delete_temperature_humidity_data`,
         { method: "POST" }
       );
       if (response.ok) {
@@ -24,7 +25,7 @@ const History = () => {
   const deleteMoistureHistory = async () => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/delete_moisture_data",
+        `${url}/delete_moisture_data`,
         { method: "POST" }
       );
       if (response.ok) {
@@ -38,7 +39,7 @@ const History = () => {
   const deleteTDSHistory = async () => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/delete_tds_data",
+        `${url}/delete_tds_data`,
         { method: "POST" }
       );
       if (response.ok) {
@@ -52,7 +53,7 @@ const History = () => {
   const deletePHHistory = async () => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/delete_ph_data",
+        `${url}/delete_ph_data`,
         { method: "POST" }
       );
       if (response.ok) {
@@ -65,7 +66,7 @@ const History = () => {
   
   const downloadPDF = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/download_database_pdf");
+      const response = await fetch(`${url}/download_database_pdf`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -87,7 +88,7 @@ const History = () => {
   useEffect(() => {
     const fetchTemperatureHumidityData = async () => {
       try {
-        const historyResponse = await fetch("http://127.0.0.1:5000/get_temperature_humidity_history");
+        const historyResponse = await fetch(`${url}/get_temperature_humidity_history`);
         const historyData = await historyResponse.json();
         
         const formattedData = historyData.temperature_humidity_data.map((item) => ({
@@ -118,7 +119,7 @@ const History = () => {
   useEffect(() => {
     const fetchMoistureData = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_moisture_data");
+        const response = await fetch(`${url}/get_moisture_data`);
         const data = await response.json();
         const formattedData = data.moisture_data.map((item) => ({
           time: new Date(item.date).toLocaleTimeString(),
@@ -140,7 +141,7 @@ const History = () => {
     };
   
     fetchMoistureData();
-    const interval = setInterval(fetchMoistureData, 10000);
+    const interval = setInterval(fetchMoistureData, 300000);
   
     return () => clearInterval(interval);
   }, []);
@@ -148,7 +149,7 @@ const History = () => {
   useEffect(() => {
     const fetchTDSData = async () => {
       try {
-        const historyResponse = await fetch("http://127.0.0.1:5000/get_tds_history");
+        const historyResponse = await fetch(`${url}/get_tds_history`);
         const historyData = await historyResponse.json();
         const formattedData = historyData.tds_data.map(item => ({
           time: new Date(item.date).toLocaleTimeString(),
@@ -175,7 +176,7 @@ const History = () => {
   useEffect(() => {
     const fetchPHData = async () => {
       try {
-        const historyResponse = await fetch("http://127.0.0.1:5000/get_ph_history");
+        const historyResponse = await fetch(`${url}/get_ph_history`);
         const historyData = await historyResponse.json();
         const formattedData = historyData.ph_data.map(item => ({
           time: new Date(item.timestamp).toLocaleTimeString(),

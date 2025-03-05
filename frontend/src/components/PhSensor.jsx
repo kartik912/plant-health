@@ -17,11 +17,12 @@ const PHSensor = () => {
   });
   const [phData, setPHData] = useState([]);
   const maxDataPoints = 20; // Limit the number of points shown on graph
+  const url = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchPHHistoryData = async () => {
       try {
-        const response = await fetch("https://api.hydrophonic.site/get_ph_history");
+        const response = await fetch(`${url}/get_ph_history`);
         const data = await response.json();
         const formattedData = data.ph_data.map((item) => {
           const phValue = parseFloat(item.ph_value);
@@ -50,7 +51,7 @@ const PHSensor = () => {
     };
 
     fetchPHHistoryData();
-    const phInterval = setInterval(fetchPHHistoryData, 10000);
+    const phInterval = setInterval(fetchPHHistoryData, 300000); // Update every 5 minutes
     return () => clearInterval(phInterval);
   }, []);
 

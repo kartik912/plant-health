@@ -17,11 +17,12 @@ const MoistureSensor = () => {
   });
   const [moistureData, setMoistureData] = useState([]);
   const maxDataPoints = 20; // Limit the number of points shown on graph
+  const url = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchMoistureData = async () => {
       try {
-        const response = await fetch("https://api.hydrophonic.sitefsda/get_moisture_data");
+        const response = await fetch(`${url}/get_moisture_data`);
         const data = await response.json();
         const formattedData = data.moisture_data.map((item) => ({
           time: new Date(item.date).toLocaleTimeString(),
@@ -40,7 +41,7 @@ const MoistureSensor = () => {
             level: latestEntry.level,
             state: latestEntry.state
           });
-          
+
         }
       } catch (error) {
         console.error("Error fetching moisture data:", error);
@@ -48,7 +49,7 @@ const MoistureSensor = () => {
     };
 
     fetchMoistureData();
-    const moistureInterval = setInterval(fetchMoistureData, 5000);
+    const moistureInterval = setInterval(fetchMoistureData, 300000); // Update every 5 minutes
     return () => clearInterval(moistureInterval);
   }, []);
 

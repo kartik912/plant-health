@@ -22,8 +22,11 @@ const Temperature = () => {
   useEffect(() => {
     const fetchTemperatureHumidityData = async () => {
       try {
-        // Only fetch the history data
-        const historyResponse = await fetch("https://api.hydrophonic.site/get_temperature_humidity_history");
+        // console.log(url)-
+        // Only fetch the history dataur
+        const url = import.meta.env.VITE_API_URL;
+        console.log(import.meta.env.VITE_API_URL);
+        const historyResponse = await fetch(`${url}/get_temperature_humidity_history`);
         const historyData = await historyResponse.json();
         
         const formattedData = historyData.temperature_humidity_data.map((item) => ({

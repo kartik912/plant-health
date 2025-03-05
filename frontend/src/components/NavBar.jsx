@@ -6,6 +6,7 @@ const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [locationData, setLocationData] = useState({ state: "", country: "" });
   const location = useLocation();
+  const url = import.meta.env.VITE_API_URL;
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -15,7 +16,7 @@ const NavBar = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await fetch("https://api.hydrophonic.site/get-location");
+        const response = await fetch(`${url}/get-location`);
         if (!response.ok) {
           throw new Error("Failed to fetch location");
         }
@@ -27,6 +28,8 @@ const NavBar = () => {
     };
 
     fetchLocation();
+    const locationInterval = setInterval(fetchLocation, 300000); // Update every 5 minutes
+    return () => clearInterval(locationInterval);
   }, []);
 
   const navigationLinks = [
@@ -43,20 +46,25 @@ const NavBar = () => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 w-full bg-slate-800 border-b border-slate-700/30 z-30 px-4 py-3 flex justify-between items-center">
+      <div className="md:hidden fixed top-0 left-0 w-full bg-slate-800 border-b border-slate-700/30 z-30 px-4 py-2 flex justify-between items-center">
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
           Plant Care
         </h1>
-        <button
-          onClick={toggleMenu}
-          className="text-slate-200 hover:text-white p-2"
-        >
-          {isOpen ? (
-            <HiX className="h-6 w-6" />
-          ) : (
-            <HiMenu className="h-6 w-6" />
-          )}
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="text-slate-300 text-xs text-right">
+            📍 {locationData.state}, {locationData.country}
+          </div>
+          <button
+            onClick={toggleMenu}
+            className="text-slate-200 hover:text-white p-2"
+          >
+            {isOpen ? (
+              <HiX className="h-6 w-6" />
+            ) : (
+              <HiMenu className="h-6 w-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main Navigation */}
@@ -70,8 +78,8 @@ const NavBar = () => {
           </h1>
         </div>
 
-        {/* Display Location */}
-        <div className="text-center text-slate-300 mt-2 text-sm">
+        {/* Display Location - Hidden on mobile, shown only in desktop sidebar */}
+        <div className="hidden md:block text-center text-slate-300 mt-2 text-sm">
           📍 {locationData.state}, {locationData.country}
         </div>
 

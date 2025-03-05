@@ -13,11 +13,12 @@ import {
 const TDS = () => {
   const [tdsData, setTdsData] = useState([]);
   const [currentTDS, setCurrentTDS] = useState(0);
+  const url = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchTDSData = async () => {
       try {
-        const historyResponse = await fetch("https://api.hydrophonic.site/get_tds_history");
+        const historyResponse = await fetch(`${url}/get_tds_history`);
         const historyData = await historyResponse.json();
         const formattedData = historyData.tds_data.map(item => ({
           time: new Date(item.date).toLocaleTimeString(),
@@ -38,7 +39,7 @@ const TDS = () => {
     };
     
     fetchTDSData();
-    const interval = setInterval(fetchTDSData, 10000);
+    const interval = setInterval(fetchTDSData, 300000);
     return () => clearInterval(interval);
   }, []);
 

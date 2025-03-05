@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PlantCamera from "./components/PlantCamera";
-import LightControl from "./components/LightControl";
 import MoistureSensor from "./components/MoistureSensor";
 import Temperature from "./components/Temperature";
 import TDS from './components/TDS';
@@ -23,7 +22,6 @@ const SensorDashboard = () => {
             <Route path="/" element={<Navigate to="dashboard"/>}/>
             <Route path="/camera" element={<PlantCamera/>}/>
             <Route path="/history" element={<History/>}/>
-            <Route path="/light" element={<LightControl/>}/>
             <Route path="/moist" element={<MoistureSensor/>}/>
             <Route path="/temp" element={<Temperature/>}/>
             <Route path="/tds" element={<TDS/>}/>

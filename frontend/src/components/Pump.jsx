@@ -10,6 +10,7 @@ const Pump = (props) => {
   });
   const [duration, setDuration] = useState(5);
   const [saveStatus, setSaveStatus] = useState("");
+  const url = import.meta.env.VITE_API_URL;
   
   // Added states for sensor limits
   const [phLimits, setPhLimits] = useState({
@@ -27,7 +28,7 @@ const Pump = (props) => {
   // Start an individual pump
   const startPump = async (pumpId) => {
     try {
-      const response = await fetch(`https://api.hydrophonic.site/pump/${pumpId}/start`, {
+      const response = await fetch(`${url}/pump/${pumpId}/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,7 +47,7 @@ const Pump = (props) => {
   // Stop an individual pump
   const stopPump = async (pumpId) => {
     try {
-      const response = await fetch(`https://api.hydrophonic.site/pump/${pumpId}/stop`, {
+      const response = await fetch(`${url}/pump/${pumpId}/stop`, {
         method: "POST",
       });
       if (response.ok) {
@@ -61,7 +62,7 @@ const Pump = (props) => {
   // Start all pumps
   const startAllPumps = async () => {
     try {
-      const response = await fetch("https://api.hydrophonic.site/pump/all/start", {
+      const response = await fetch(`${url}/pump/all/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +81,7 @@ const Pump = (props) => {
   // Stop all pumps
   const stopAllPumps = async () => {
     try {
-      const response = await fetch("https://api.hydrophonic.site/pump/all/stop", {
+      const response = await fetch(`${url}/pump/all/stop`, {
         method: "POST",
       });
       if (response.ok) {
@@ -95,7 +96,7 @@ const Pump = (props) => {
   // Fetch the status of all pumps
   const fetchPumpStatus = async () => {
     try {
-      const response = await fetch("https://api.hydrophonic.site/pump/status");
+      const response = await fetch(`${url}/pump/status`);
       if (response.ok) {
         const data = await response.json();
         setPumpStatus(data);
@@ -112,7 +113,7 @@ const Pump = (props) => {
 
   const fetchLimits = async () => {
     try {
-      const response = await fetch("https://api.hydrophonic.site/sensor/limits");
+      const response = await fetch(`${url}/sensor/limits`);
       if (response.ok) {
         const data = await response.json();
         if (data.ph) setPhLimits(data.ph);
@@ -127,7 +128,7 @@ const Pump = (props) => {
   const updateSensorLimits = async () => {
     try {
       setSaveStatus("Saving...");
-      const response = await fetch("https://api.hydrophonic.site/sensor/limits", {
+      const response = await fetch(`${url}/sensor/limits`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

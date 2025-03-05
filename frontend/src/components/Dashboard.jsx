@@ -67,11 +67,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchHistoricalData = async () => {
       try {
+        const url = import.meta.env.VITE_API_URL;
         const [tempHumHistoryRes, moistureHistoryRes, phHistoryRes, tdsHistoryRes] = await Promise.all([
-          fetch("https://api.hydrophonic.site/get_temperature_humidity_history"),
-          fetch("https://api.hydrophonic.site/get_moisture_data"),
-          fetch("https://api.hydrophonic.site/get_ph_history"),
-          fetch("https://api.hydrophonic.site/get_tds_history")
+          fetch(`${url}/get_temperature_humidity_history`),
+          fetch(`${url}/get_moisture_data`),
+          fetch(`${url}/get_ph_history`),
+          fetch(`${url}/get_tds_history`)
         ]);
 
         const tempHumHistory = await tempHumHistoryRes.json();
@@ -165,7 +166,7 @@ const Dashboard = () => {
     fetchHistoricalData();
     const interval = setInterval(() => {
       fetchHistoricalData();
-    }, 5000);
+    }, 300000); // Update every 5 minutes
     return () => clearInterval(interval);
   }, []);
 
@@ -198,30 +199,30 @@ const Dashboard = () => {
   console.log("Current moisture state in render:", currentMoisture);
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 p-6">
+    <div className="w-full min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 p-2 sm:p-6">
       <div className="max-w-7xl mx-auto w-full">
-        {/* Header with glowing text */}
-        <h1 className="text-4xl font-bold mb-12 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 text-center drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+        {/* Header with glowing text, made more compact */}
+        <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 text-center drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
           Sensor Dashboard
         </h1>
         
         {/* First Row: PH, Humidity, and Temperature Gauges */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-8">
+          <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <Gauge value={currentPH?.value} time={currentPH?.time} />
           </div>
-          <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
+          <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <HumidityGauge value={currentHumidity?.value} time={currentHumidity?.time} />
           </div>
-          <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
+          <div className="col-span-2 sm:col-span-1 w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <TemperatureGauge value={currentTemperature?.value} time={currentTemperature?.time} />
           </div>
         </div>
 
         {/* Combined Graph for PH, Humidity, and Temperature */}
-        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-6 mb-8 shadow-lg border border-slate-700/30 backdrop-blur-sm">
-          <h3 className="text-xl font-semibold text-white mb-4 ml-2">Environmental Parameters</h3>
-          <div style={chartStyle} className="p-4">
+        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-2 sm:p-6 mb-4 sm:mb-8 shadow-lg border border-slate-700/30 backdrop-blur-sm">
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">Environmental Parameters</h3>
+          <div style={chartStyle} className="p-1 sm:p-4">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={sensorData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
@@ -243,15 +244,7 @@ const Dashboard = () => {
                     color: '#e2e8f0'
                   }} 
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="ph" 
-                  stroke="#FF6384" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6, stroke: '#FF6384', strokeWidth: 2 }}
-                  name="pH Level" 
-                />
+                
                 <Line 
                   type="monotone" 
                   dataKey="humidity" 
@@ -270,17 +263,26 @@ const Dashboard = () => {
                   activeDot={{ r: 6, stroke: '#FF9F40', strokeWidth: 2 }}
                   name="Temperature" 
                 />
+                <Line 
+                  type="monotone" 
+                  dataKey="ph" 
+                  stroke="#FF6384" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6, stroke: '#FF6384', strokeWidth: 2 }}
+                  name="pH Level" 
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Second Row: TDS and Soil Moisture Gauges */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
+        <div className="w-full grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-8">
+          <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <TDSGauge value={currentTDS?.value} time={currentTDS?.time} />
           </div>
-          <div className="w-full h-full min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
+          <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <MoistureGauge 
               value={currentMoisture?.value} 
               state={currentMoisture?.state} 
@@ -290,9 +292,9 @@ const Dashboard = () => {
         </div>
 
         {/* Combined Graph for TDS and Soil Moisture */}
-        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-6 shadow-lg border border-slate-700/30 backdrop-blur-sm">
-          <h3 className="text-xl font-semibold text-white mb-4 ml-2">Soil Parameters</h3>
-          <div style={chartStyle} className="p-4">
+        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-2 sm:p-6 shadow-lg border border-slate-700/30 backdrop-blur-sm">
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">Soil Parameters</h3>
+          <div style={chartStyle} className="p-1 sm:p-4">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={sensorData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
@@ -316,15 +318,6 @@ const Dashboard = () => {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="tds" 
-                  stroke="#4BC0C0" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6, stroke: '#4BC0C0', strokeWidth: 2 }}
-                  name="TDS" 
-                />
-                <Line 
-                  type="monotone" 
                   dataKey="moisture" 
                   stroke="#9966FF" 
                   strokeWidth={2}
@@ -332,11 +325,21 @@ const Dashboard = () => {
                   activeDot={{ r: 6, stroke: '#9966FF', strokeWidth: 2 }}
                   name="Soil Moisture" 
                 />
+                <Line 
+                  type="monotone" 
+                  dataKey="tds" 
+                  stroke="#4BC0C0" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6, stroke: '#4BC0C0', strokeWidth: 2 }}
+                  name="TDS" 
+                />
+                
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="mt-8">
+        <div className="mt-4 sm:mt-8">
           <LocationMap />
         </div>
       </div>

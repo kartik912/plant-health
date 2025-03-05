@@ -14,11 +14,12 @@ L.Icon.Default.mergeOptions({
 export const LocationMap = () => {
   const [location, setLocation] = useState(null);
   const [error, setError] = useState(null);
+  const url = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await fetch('https://api.hydrophonic.site/get-location');
+        const response = await fetch(`${url}/get-location`);
         const data = await response.json();
         
         if (data.error) {
@@ -52,10 +53,7 @@ export const LocationMap = () => {
         {location ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-slate-300">
-              <div>
-                <p className="text-sm text-slate-400">IP Address</p>
-                <p className="font-medium">{location.ip}</p>
-              </div>
+              
               <div>
                 <p className="text-sm text-slate-400">Location</p>
                 <p className="font-medium">{`${location.city}, ${location.region}, ${location.country}`}</p>

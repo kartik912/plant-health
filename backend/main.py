@@ -50,7 +50,7 @@ def fetch_sensor_data():
         time.sleep(600) #10 mins
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 6   # GPIO6
+PUMP1_IN1 = 5   # GPIO6
 PUMP1_IN2 = 13  # GPIO13
 PUMP2_IN3 = 26  # GPIO26
 PUMP2_IN4 = 17  # GPIO17
@@ -270,7 +270,7 @@ def get_location():
         return {"error": "Could not fetch public IP"}
     
     # Free API for geolocation (limited requests)
-    # geo_url = f"http://ip-api.com/json/{ip}"
+    geo_url = f"http://ip-api.com/json/{ip}"
     
     try:
         response = requests.get(geo_url)
@@ -303,7 +303,7 @@ class GroveTDS:
         value = self.adc.read(self.channel)
         if value != 0:
             voltage = value * 5 / 1024.0
-            tds_value = (133.42 * voltage**3 - 1566.86 * voltage**2 + 857.39 * voltage) * 0.5
+            tds_value = (133.42 * voltage**3 - 866.86 * voltage**2 + 857.39 * voltage) * 0.5
             return tds_value
         return 0
 
