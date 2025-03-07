@@ -291,7 +291,7 @@ def get_location():
         return {"error": str(e)}
 # ----------------------------------------------------------------------------------------
 
-# function for tds sensor----------------------------------------------------------------
+# class for tds sensor----------------------------------------------------------------
 
 adc = ADC()
 class GroveTDS:
@@ -316,6 +316,29 @@ class GroveTDS:
         return sum(self.readings) / len(self.readings)  # Return averaged value
 
 tdssensor = GroveTDS(2, window_size=20)
+
+#class for ph sensor----------------------------------------------------------------
+
+class GrovePH:
+    def __init__(self, channel, window_size=10):
+        self.channel = channel
+        self.adc = ADC()
+        self.window_size = window_size
+        self.readings = deque(maxlen=window_size)  # Stores last 'window_size' readings
+
+    def read_ph(self):
+        raw_voltage = self.adc.read_voltage(self.channel)
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage
+        ph_value = 7 + ((2.5 - voltage) / 0.18)  # pH calculation
+        return ph_value
+
+    @property
+    def PH(self):
+        ph_value = self.read_ph()
+        self.readings.append(ph_value)  # Add new value to moving window
+        return sum(self.readings) / len(self.readings)  # Return averaged pH
+
+Phsensor = GrovePH(channel=4, window_size=10)
     #-------------------------------------------------------------------------------------
     # Camera ------------------------------------------------------------------------------
 
@@ -408,9 +431,7 @@ def check_sensors():
         
         # Check pH
         try:
-            raw_voltage = adc.read_voltage(4)
-            voltage = (raw_voltage * 5.0 / 4095.0) - 0.354
-            ph_val = 7 + ((2.5 - voltage) / 0.18)
+            ph_val = Phsensor.PH
             monitor.check_sensor_reading('ph', ph_val)
         except Exception as e:
             monitor.send_email_alert('pH Sensor', f"Failed to read pH: {str(e)}")
@@ -902,9 +923,7 @@ def delete_tds_data():
 @app.route("/get_ph", methods=["GET"])
 def get_ph():
     try:
-        raw_voltage = adc.read_voltage(4)
-        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage calculation
-        ph_val = 7 + ((2.5 - voltage) / 0.18)
+        ph_val = Phsensor.PH
 
         # Store in database
         new_data = PHData(ph_value=ph_val)
