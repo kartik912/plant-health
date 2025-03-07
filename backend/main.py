@@ -14,6 +14,7 @@ from reportlab.pdfgen import canvas
 from datetime import datetime
 from config import app, db
 from time import sleep
+from collections import deque
 import time
 import board
 import os
@@ -50,7 +51,7 @@ def fetch_sensor_data():
         time.sleep(600) #10 mins
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 5   # GPIO6
+PUMP1_IN1 = 6   # GPIO5
 PUMP1_IN2 = 13  # GPIO13
 PUMP2_IN3 = 26  # GPIO26
 PUMP2_IN4 = 17  # GPIO17
@@ -294,20 +295,27 @@ def get_location():
 
 adc = ADC()
 class GroveTDS:
-    def __init__(self, channel):
+    def __init__(self, channel, window_size=10):
         self.channel = channel
         self.adc = ADC()
+        self.window_size = window_size
+        self.readings = deque(maxlen=window_size)  # Stores last 'window_size' readings
 
-    @property
-    def TDS(self):
+    def read_tds(self):
         value = self.adc.read(self.channel)
         if value != 0:
-            voltage = value * 5 / 1024.0
-            tds_value = (133.42 * voltage**3 - 866.86 * voltage**2 + 857.39 * voltage) * 0.5
+            voltage = value * 5 / 1024.0  # Convert ADC value to voltage
+            tds_value = (133.42 * voltage**3 - 355.86 * voltage**2 + 3257.39 * voltage) * 0.5
             return tds_value
         return 0
 
-tdssensor = GroveTDS(2)
+    @property
+    def TDS(self):
+        tds_value = self.read_tds()
+        self.readings.append(tds_value)  # Add new value to moving window
+        return sum(self.readings) / len(self.readings)  # Return averaged value
+
+tdssensor = GroveTDS(2, window_size=20)
     #-------------------------------------------------------------------------------------
     # Camera ------------------------------------------------------------------------------
 
@@ -780,8 +788,6 @@ def get_temperature_humidity():
         temperature = dht_sensor.temperature
         humidity = dht_sensor.humidity
 
-        dht_sensor.exit()
-
         
         if temperature is not None and humidity is not None:
             # Store sensor data
@@ -937,6 +943,8 @@ def download_database_pdf():
         moisture_data = MoistureSensorData.query.all()
         temp_humidity_data = TemperatureHumidityData.query.all()
         photo_data = PhotoRecord.query.all()
+        ph_data = PHData.query.all()
+        tds_data = TDSData.query.all()
 
         # Create an in-memory file
         pdf_buffer = BytesIO()
@@ -983,6 +991,27 @@ def download_database_pdf():
             if y < 50:
                 pdf.showPage()
                 y = 750
+        
+        #add ph data
+        pdf.drawString(50, y - 20, "PH History:")
+        y -= 40
+        for data in ph_data:
+            pdf.drawString(60, y, f"PH Value: {data.ph_value}, Date: {data.date}")
+            y -= 20
+            if y < 50:
+                pdf.showPage()
+                y = 750
+        
+        #add tds data
+        pdf.drawString(50, y - 20, "TDS History:")
+        y -= 40
+        for data in tds_data:
+            pdf.drawString(60, y, f"TDS Value: {data.tds_value}, Date: {data.date}")
+            y -= 20
+            if y < 50:
+                pdf.showPage()
+                y = 750
+
 
         pdf.save()
 
@@ -1070,6 +1099,7 @@ if __name__ == "__main__":
         db.create_all()
     
     # Start the background task
+
     data_fetch_thread = threading.Thread(target=fetch_sensor_data)
     data_fetch_thread.daemon = True  # This makes sure the thread will exit when the main program does
     data_fetch_thread.start()

@@ -117,19 +117,19 @@ const Temperature = () => {
                   />
                   <Line
                     type="monotone"
-                    dataKey="temperature"
-                    stroke="#34d399"
-                    strokeWidth={2}
-                    dot={false}
-                    name="Temperature (°C)"
-                  />
-                  <Line
-                    type="monotone"
                     dataKey="humidity"
                     stroke="#22d3ee"
                     strokeWidth={2}
                     dot={false}
                     name="Humidity (%)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="temperature"
+                    stroke="#34d399"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Temperature (°C)"
                   />
                 </LineChart>
               </ResponsiveContainer>
