@@ -15,6 +15,7 @@ from datetime import datetime
 from config import app, db
 from time import sleep
 from collections import deque
+import numpy as np
 import time
 import board
 import os
@@ -147,17 +148,21 @@ def check_and_adjust_sensors():
             pump1_forward()
             time.sleep(5)
             pump1_stop()
+            time.sleep(5)
+            pump2_forward()
+            time.sleep(5)
+            pump2_stop()
             # Start a timer to auto-stop the pump after 5 seconds
             # stop_thread = threading.Thread(target=auto_stop_pump, args=(1, 5))
             # stop_thread.daemon = True
             # stop_thread.start()
             
-        elif tds_value > tds_max:
-            # TDS too high, activate pump 2 (water pump to dilute)
-            print(f"TDS {tds_value} above maximum {tds_max}, activating pump 2")
-            pump2_forward()
-            time.sleep(5)
-            pump2_stop()
+        # elif tds_value > tds_max:
+        #     # TDS too high, activate pump 2 (water pump to dilute)
+        #     print(f"TDS {tds_value} above maximum {tds_max}, activating pump 2")
+        #     pump2_forward()
+        #     time.sleep(5)
+        #     pump2_stop()
             # Start a timer to auto-stop the pump after 5 seconds
             # stop_thread = threading.Thread(target=auto_stop_pump, args=(2, 5))
             # stop_thread.daemon = True
@@ -251,8 +256,6 @@ def cleanup_gpio():
             
     except Exception as e:
         print(f"Error during cleanup: {e}")
-
-
     
 # function to fetch locations --------------------------------------------------------
 def get_public_ip():
@@ -295,7 +298,7 @@ def get_location():
 
 adc = ADC()
 class GroveTDS:
-    def __init__(self, channel, window_size=10):
+    def __init__(self, channel, window_size):
         self.channel = channel
         self.adc = ADC()
         self.window_size = window_size
@@ -304,23 +307,23 @@ class GroveTDS:
     def read_tds(self):
         value = self.adc.read(self.channel)
         if value != 0:
-            voltage = value * 5 / 1024.0  # Convert ADC value to voltage
-            tds_value = (133.42 * voltage**3 - 355.86 * voltage**2 + 3257.39 * voltage) * 0.5
-            return tds_value
+            voltage = value * 3.3 / 4095.0 - 0.02  # Convert ADC value to voltage
+            tds_value = 5.11*np.exp(210.73*voltage) + 6038.51*voltage + 15.81
+            return max(0,tds_value)
         return 0
 
     @property
     def TDS(self):
         tds_value = self.read_tds()
         self.readings.append(tds_value)  # Add new value to moving window
-        return sum(self.readings) / len(self.readings)  # Return averaged value
+        return np.median(readings)  # Return median value tds
 
-tdssensor = GroveTDS(2, window_size=20)
+tdssensor = GroveTDS(2, window_size=200)
 
 #class for ph sensor----------------------------------------------------------------
 
 class GrovePH:
-    def __init__(self, channel, window_size=10):
+    def __init__(self, channel, window_size):
         self.channel = channel
         self.adc = ADC()
         self.window_size = window_size
@@ -336,9 +339,9 @@ class GrovePH:
     def PH(self):
         ph_value = self.read_ph()
         self.readings.append(ph_value)  # Add new value to moving window
-        return sum(self.readings) / len(self.readings)  # Return averaged pH
+        return np.median(readings)  # Return median pH
 
-Phsensor = GrovePH(channel=4, window_size=10)
+Phsensor = GrovePH(channel=4, window_size=200)
     #-------------------------------------------------------------------------------------
     # Camera ------------------------------------------------------------------------------
 
