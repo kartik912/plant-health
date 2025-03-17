@@ -124,14 +124,14 @@ def check_and_adjust_sensors():
             # pH too low, activate pump 3 (base pump)
             print(f"pH {ph_value} below minimum {ph_min}, activating pump 3")
             pump3_forward()
-            time.sleep(5)
+            time.sleep(3.3)
             pump3_stop()
             
         elif ph_value > ph_max:
             # pH too high, activate pump 4 (acid pump)
             print(f"pH {ph_value} above maximum {ph_max}, activating pump 4")
             pump4_forward()
-            time.sleep(5)   
+            time.sleep(3.3)   
             pump4_stop()
             # Start a timer to auto-stop the pump after 5 seconds
             # stop_thread = threading.Thread(target=auto_stop_pump, args=(4, 5))
@@ -331,7 +331,7 @@ class GrovePH:
 
     def read_ph(self):
         raw_voltage = self.adc.read_voltage(self.channel)
-        voltage = (raw_voltage * 5.0 / 4095.0) - 0.354  # Adjusted voltage
+        voltage = (raw_voltage * 5.0 / 4095.0) - 0.384  # Adjusted voltage
         ph_value = 7 + ((2.5 - voltage) / 0.18)  # pH calculation
         return ph_value
 
