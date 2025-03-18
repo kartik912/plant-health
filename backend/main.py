@@ -1054,48 +1054,79 @@ def download_database_pdf():
 @app.route("/download_database_csv", methods=["GET"])
 def download_database_csv():
     try:
+        import io
+        from io import BytesIO
+        import pytz
+        
+        # Configure timezone - use the same timezone as in your models
+        DEFAULT_TIMEZONE = pytz.timezone('Asia/Kolkata')  # Change to match your models file
+        
         # Query data from all tables
-        light_data = LightBulb.query.all()
-        moisture_data = MoistureSensorData.query.all()
         temp_humidity_data = TemperatureHumidityData.query.all()
-        photo_data = PhotoRecord.query.all()
         ph_data = PHData.query.all()
         tds_data = TDSData.query.all()
-
+        
         # Create an in-memory file
         csv_buffer = io.StringIO()
         
-        # Write header lines for each table
-        csv_buffer.write("LIGHT DATA\n")
-        csv_buffer.write("Status,Date\n")
-        for data in light_data:
-            csv_buffer.write(f"{data.status},{data.date}\n")
+        # Write header for combined data
+        csv_buffer.write("Date,Temperature (°C),Humidity (%),pH,TDS,Time\n")
         
-        csv_buffer.write("\nMOISTURE DATA\n")
-        csv_buffer.write("Moisture Level,State,Date\n")
-        for data in moisture_data:
-            csv_buffer.write(f"{data.moisture_level},{data.state},{data.date}\n")
+        # Create a dictionary to store data by date
+        combined_data = {}
         
-        csv_buffer.write("\nTEMPERATURE & HUMIDITY DATA\n")
-        csv_buffer.write("Temperature (°C),Humidity (%),Date\n")
+        # Process temperature & humidity data
         for data in temp_humidity_data:
-            csv_buffer.write(f"{data.temperature},{data.humidity},{data.date}\n")
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["temp"] = data.temperature
+            combined_data[date_str][time_str]["humidity"] = data.humidity
         
-        csv_buffer.write("\nPHOTO RECORDS\n")
-        csv_buffer.write("Filename,Google Drive Link,Captured At\n")
-        for data in photo_data:
-            csv_buffer.write(f"{data.filename},{data.google_drive_link},{data.captured_at}\n")
-        
-        csv_buffer.write("\nPH DATA\n")
-        csv_buffer.write("PH Value,Date\n")
+        # Process pH data
         for data in ph_data:
-            csv_buffer.write(f"{data.ph_value},{data.timestamp},{data.mode}\n")
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.timestamp.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["ph"] = data.ph_value
         
-        csv_buffer.write("\nTDS DATA\n")
-        csv_buffer.write("TDS Value,Date\n")
+        # Process TDS data
         for data in tds_data:
-            csv_buffer.write(f"{data.tds_value},{data.date}\n")
-
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["tds"] = data.tds_value
+        
+        # Write combined data to CSV
+        for date_str in sorted(combined_data.keys()):
+            for time_str in sorted(combined_data[date_str].keys()):
+                data_point = combined_data[date_str][time_str]
+                csv_buffer.write(f"{date_str},{data_point['temp'] or ''},{data_point['humidity'] or ''},{data_point['ph'] or ''},{data_point['tds'] or ''},{time_str}\n")
+        
         # Convert to BytesIO for sending file
         bytes_buffer = BytesIO()
         bytes_buffer.write(csv_buffer.getvalue().encode('utf-8'))
@@ -1105,7 +1136,7 @@ def download_database_csv():
         return send_file(
             bytes_buffer, 
             as_attachment=True,
-            download_name="database_content.csv", 
+            download_name="sensor_data.csv", 
             mimetype="text/csv"
         )
 

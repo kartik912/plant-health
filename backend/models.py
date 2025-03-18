@@ -1,17 +1,21 @@
 from datetime import datetime
+import pytz
 from config import db
 
+# Configure timezone - replace with your specific timezone as needed
+DEFAULT_TIMEZONE = pytz.timezone('Asia/Kolkata')  # Change to your timezone, e.g., 'America/New_York'
 
-class LightBulb(db.Model):  # Corrected class name casing (PEP8 standard)
+class LightBulb(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     status = db.Column(db.String(80), unique=False, nullable=False)
-    date = db.Column(db.DateTime, default=db.func.current_timestamp())  # Use DateTime type
-
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
     def to_json(self):
+        localized_date = self.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "status": self.status,
-            "date": self.date.strftime('%Y-%m-%d %H:%M:%S'),  # Format the date for JSON output
+            "date": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z'),
         }
 
 class MoistureSensorData(db.Model):
@@ -19,13 +23,14 @@ class MoistureSensorData(db.Model):
     moisture_level = db.Column(db.Integer, nullable=False)
     state = db.Column(db.String(50), nullable=False)
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
-
+    
     def to_json(self):
+        localized_date = self.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "moisture_level": self.moisture_level,
             "state": self.state,
-            "date": self.date.strftime('%Y-%m-%d %H:%M:%S')
+            "date": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
 
 class TemperatureHumidityData(db.Model):
@@ -33,13 +38,14 @@ class TemperatureHumidityData(db.Model):
     temperature = db.Column(db.Float, nullable=False)
     humidity = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
-
+    
     def to_json(self):
+        localized_date = self.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "temperature": self.temperature,
             "humidity": self.humidity,
-            "date": self.date.strftime('%Y-%m-%d %H:%M:%S')
+            "date": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
 
 class PhotoRecord(db.Model):
@@ -47,25 +53,27 @@ class PhotoRecord(db.Model):
     filename = db.Column(db.String(255), nullable=False)
     google_drive_link = db.Column(db.String(500), nullable=False)
     captured_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    
     def to_json(self):
+        localized_date = self.captured_at.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "filename": self.filename,
-            "google_drive_link": self.photo_path,
-            "captured_at": self.captured_at.isoformat()
+            "google_drive_link": self.google_drive_link,  # Fixed attribute name
+            "captured_at": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
 
 class TDSData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tds_value = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
-
+    
     def to_json(self):
+        localized_date = self.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "tds_value": self.tds_value,
-            "date": self.date.strftime('%Y-%m-%d %H:%M:%S')
+            "date": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
 
 class PHData(db.Model):
@@ -73,30 +81,31 @@ class PHData(db.Model):
     ph_value = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     mode = db.Column(db.String(255), nullable=True)
-
+    
     def to_json(self):
+        localized_date = self.timestamp.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id, 
             "ph_value": self.ph_value,
-            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z'),
             "mode": self.mode
         }
 
-
 class SensorLimits(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sensor_type = db.Column(db.String(10), nullable=False)  # 'ph' or 'tds'
+    sensor_type = db.Column(db.String(10), nullable=False)
     min_value = db.Column(db.Float, nullable=False)
     max_value = db.Column(db.Float, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    updated_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_json(self):
+        localized_date = self.updated_at.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
         return {
             "id": self.id,
             "sensor_type": self.sensor_type,
             "min_value": self.min_value,
             "max_value": self.max_value,
             "is_active": self.is_active,
-            "updated_at": self.updated_at
+            "updated_at": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
