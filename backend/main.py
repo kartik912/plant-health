@@ -316,7 +316,7 @@ class GroveTDS:
     def TDS(self):
         tds_value = self.read_tds()
         self.readings.append(tds_value)  # Add new value to moving window
-        return np.median(readings)  # Return median value tds
+        return np.median(self.readings)  # Return median value tds
 
 tdssensor = GroveTDS(2, window_size=200)
 
@@ -339,7 +339,7 @@ class GrovePH:
     def PH(self):
         ph_value = self.read_ph()
         self.readings.append(ph_value)  # Add new value to moving window
-        return np.median(readings)  # Return median pH
+        return np.median(self.readings)  # Return median pH
 
 Phsensor = GrovePH(channel=4, window_size=200)
     #-------------------------------------------------------------------------------------
@@ -927,9 +927,16 @@ def delete_tds_data():
 def get_ph():
     try:
         ph_val = Phsensor.PH
+        latest_range = SensorLimits.query.filter_by(sensor_type="ph").order_by(SensorLimits.updated_at.desc()).first()
 
+        if latest_range:
+            min_ph = latest_range.min_value
+            max_ph = latest_range.max_value
+            print(min_ph)
+
+            mode = f"Range: {min_ph}-{max_ph}"
         # Store in database
-        new_data = PHData(ph_value=ph_val)
+        new_data = PHData(ph_value=ph_val,mode=mode)
         db.session.add(new_data)
         db.session.commit()
 
@@ -1044,6 +1051,67 @@ def download_database_pdf():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
+@app.route("/download_database_csv", methods=["GET"])
+def download_database_csv():
+    try:
+        # Query data from all tables
+        light_data = LightBulb.query.all()
+        moisture_data = MoistureSensorData.query.all()
+        temp_humidity_data = TemperatureHumidityData.query.all()
+        photo_data = PhotoRecord.query.all()
+        ph_data = PHData.query.all()
+        tds_data = TDSData.query.all()
+
+        # Create an in-memory file
+        csv_buffer = io.StringIO()
+        
+        # Write header lines for each table
+        csv_buffer.write("LIGHT DATA\n")
+        csv_buffer.write("Status,Date\n")
+        for data in light_data:
+            csv_buffer.write(f"{data.status},{data.date}\n")
+        
+        csv_buffer.write("\nMOISTURE DATA\n")
+        csv_buffer.write("Moisture Level,State,Date\n")
+        for data in moisture_data:
+            csv_buffer.write(f"{data.moisture_level},{data.state},{data.date}\n")
+        
+        csv_buffer.write("\nTEMPERATURE & HUMIDITY DATA\n")
+        csv_buffer.write("Temperature (°C),Humidity (%),Date\n")
+        for data in temp_humidity_data:
+            csv_buffer.write(f"{data.temperature},{data.humidity},{data.date}\n")
+        
+        csv_buffer.write("\nPHOTO RECORDS\n")
+        csv_buffer.write("Filename,Google Drive Link,Captured At\n")
+        for data in photo_data:
+            csv_buffer.write(f"{data.filename},{data.google_drive_link},{data.captured_at}\n")
+        
+        csv_buffer.write("\nPH DATA\n")
+        csv_buffer.write("PH Value,Date\n")
+        for data in ph_data:
+            csv_buffer.write(f"{data.ph_value},{data.timestamp},{data.mode}\n")
+        
+        csv_buffer.write("\nTDS DATA\n")
+        csv_buffer.write("TDS Value,Date\n")
+        for data in tds_data:
+            csv_buffer.write(f"{data.tds_value},{data.date}\n")
+
+        # Convert to BytesIO for sending file
+        bytes_buffer = BytesIO()
+        bytes_buffer.write(csv_buffer.getvalue().encode('utf-8'))
+        bytes_buffer.seek(0)
+        
+        # Return the CSV as a downloadable file
+        return send_file(
+            bytes_buffer, 
+            as_attachment=True,
+            download_name="database_content.csv", 
+            mimetype="text/csv"
+        )
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
 @app.route("/delete_all_data", methods=["POST"])
 def delete_all_data():
     try:
@@ -1098,6 +1166,16 @@ def get_relay_status():
 
     return jsonify({"status": light_status}), 200
 
+@app.route("/database_structure", methods=["GET"])
+def database_structure():
+    try:
+        structure = {}
+        for table in db.metadata.tables.values():
+            structure[table.name] = [column.name + " (" + str(column.type) + ")" for column in table.columns]
+
+        return jsonify(structure), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 
 #location routes------------------------------------------------------------------------------------------------

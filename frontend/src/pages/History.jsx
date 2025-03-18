@@ -64,24 +64,24 @@ const History = () => {
     }
   };
   
-  const downloadPDF = async () => {
+  const downloadCSV = async () => {
     try {
-      const response = await fetch(`${url}/download_database_pdf`);
+      const response = await fetch(`${url}/download_database_csv`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'PlantCareDashboard.pdf';
+        a.download = 'PlantCareDashboard.csv';
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        console.error("Failed to fetch database PDF:", response.statusText);
+        console.error("Failed to fetch database csv:", response.statusText);
       }
     } catch (error) {
-      console.error("Error downloading database PDF:", error);
+      console.error("Error downloading database CSV:", error);
     }
   };
   
@@ -209,10 +209,10 @@ const History = () => {
             Sensor History (Latest 10 entries)
           </h2>
           <button 
-            onClick={downloadPDF} 
+            onClick={downloadCSV} 
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition duration-200"
           >
-            Download PDF Report
+            Download CSV Report
           </button>
         </div>
 

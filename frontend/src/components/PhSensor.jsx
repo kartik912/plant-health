@@ -51,7 +51,7 @@ const PHSensor = () => {
     };
 
     fetchPHHistoryData();
-    const phInterval = setInterval(fetchPHHistoryData, 300000); // Update every 5 minutes
+    const phInterval = setInterval(fetchPHHistoryData, 300000); // Update every 5 minutes 5000 300000
     return () => clearInterval(phInterval);
   }, []);
 

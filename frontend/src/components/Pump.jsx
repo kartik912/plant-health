@@ -12,6 +12,10 @@ const Pump = (props) => {
   const [saveStatus, setSaveStatus] = useState("");
   const url = import.meta.env.VITE_API_URL;
   
+  // Store original ranges for when sensors are turned back on
+  const [phOriginalRange, setPhOriginalRange] = useState({ min: 5.5, max: 7.5 });
+  const [tdsOriginalRange, setTdsOriginalRange] = useState({ min: 500, max: 1500 });
+  
   // Added states for sensor limits
   const [phLimits, setPhLimits] = useState({
     min: 5.5,
@@ -116,8 +120,18 @@ const Pump = (props) => {
       const response = await fetch(`${url}/sensor/limits`);
       if (response.ok) {
         const data = await response.json();
-        if (data.ph) setPhLimits(data.ph);
-        if (data.tds) setTdsLimits(data.tds);
+        if (data.ph) {
+          setPhLimits(data.ph);
+          if (data.ph.active) {
+            setPhOriginalRange({ min: data.ph.min, max: data.ph.max });
+          }
+        }
+        if (data.tds) {
+          setTdsLimits(data.tds);
+          if (data.tds.active) {
+            setTdsOriginalRange({ min: data.tds.min, max: data.tds.max });
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching sensor limits:", error);
@@ -129,14 +143,14 @@ const Pump = (props) => {
     try {
       setSaveStatus("Validating...");
       
-      // Check if pH range is at least 1
+      // Check if pH range is at least 1 if active
       if (phLimits.active && (phLimits.max - phLimits.min < 1)) {
         setSaveStatus("pH range needs to be at least 1");
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }
       
-      // Check if TDS range is at least 1
+      // Check if TDS range is at least 1 if active
       if (tdsLimits.active && (tdsLimits.max - tdsLimits.min < 1)) {
         setSaveStatus("TDS range needs to be at least 1");
         setTimeout(() => setSaveStatus(""), 3000);
@@ -169,17 +183,72 @@ const Pump = (props) => {
     }
   };
 
+  // Modified handler to set default ranges when toggling sensors off/on
   const handleInputChange = (sensor, field, value) => {
     if (sensor === "ph") {
-      setPhLimits({
-        ...phLimits,
-        [field]: field === "active" ? value : parseFloat(value)
-      });
-    } else {
-      setTdsLimits({
-        ...tdsLimits,
-        [field]: field === "active" ? value : parseFloat(value)
-      });
+      if (field === "active") {
+        if (value) {
+          // Turning ON - restore original range
+          setPhLimits({
+            ...phLimits,
+            active: true,
+            min: phOriginalRange.min,
+            max: phOriginalRange.max
+          });
+        } else {
+          // Turning OFF - save current range and set full range
+          setPhOriginalRange({ min: phLimits.min, max: phLimits.max });
+          setPhLimits({
+            ...phLimits,
+            active: false,
+            min: 0,
+            max: 14
+          });
+          
+          // Auto-save when turning off
+          setTimeout(() => {
+            updateSensorLimits();
+          }, 100);
+        }
+      } else {
+        // Normal field update
+        setPhLimits({
+          ...phLimits,
+          [field]: parseFloat(value)
+        });
+      }
+    } else if (sensor === "tds") {
+      if (field === "active") {
+        if (value) {
+          // Turning ON - restore original range
+          setTdsLimits({
+            ...tdsLimits,
+            active: true,
+            min: tdsOriginalRange.min,
+            max: tdsOriginalRange.max
+          });
+        } else {
+          // Turning OFF - save current range and set full range
+          setTdsOriginalRange({ min: tdsLimits.min, max: tdsLimits.max });
+          setTdsLimits({
+            ...tdsLimits,
+            active: false,
+            min: 0,
+            max: 3000
+          });
+          
+          // Auto-save when turning off
+          setTimeout(() => {
+            updateSensorLimits();
+          }, 100);
+        }
+      } else {
+        // Normal field update
+        setTdsLimits({
+          ...tdsLimits,
+          [field]: parseFloat(value)
+        });
+      }
     }
   };
   
@@ -425,7 +494,7 @@ const Pump = (props) => {
                 <div className="flex items-start">
                   <div className="text-blue-400 mr-3 text-lg">ℹ️</div>
                   <p className="text-xs text-slate-400">
-                    Sensor monitoring automatically prevents pumps from activating when pH or TDS levels are outside the specified ranges.
+                    Sensor monitoring automatically prevents pumps from activating when pH or TDS levels are outside the specified ranges. When toggling a sensor OFF, its range is automatically set to full scale (0-14 for pH, 0-3000 for TDS).
                   </p>
                 </div>
               </div>

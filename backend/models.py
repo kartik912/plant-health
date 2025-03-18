@@ -5,7 +5,7 @@ from config import db
 class LightBulb(db.Model):  # Corrected class name casing (PEP8 standard)
     id = db.Column(db.Integer, primary_key=True)
     status = db.Column(db.String(80), unique=False, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)  # Use DateTime type
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())  # Use DateTime type
 
     def to_json(self):
         return {
@@ -18,7 +18,7 @@ class MoistureSensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     moisture_level = db.Column(db.Integer, nullable=False)
     state = db.Column(db.String(50), nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     def to_json(self):
         return {
@@ -32,7 +32,7 @@ class TemperatureHumidityData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     temperature = db.Column(db.Float, nullable=False)
     humidity = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     def to_json(self):
         return {
@@ -59,7 +59,7 @@ class PhotoRecord(db.Model):
 class TDSData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tds_value = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     def to_json(self):
         return {
@@ -72,12 +72,14 @@ class PHData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ph_value = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    mode = db.Column(db.String(255), nullable=True)
 
     def to_json(self):
         return {
             "id": self.id, 
             "ph_value": self.ph_value,
-            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "mode": self.mode
         }
 
 
