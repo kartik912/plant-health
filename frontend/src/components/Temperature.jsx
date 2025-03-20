@@ -30,7 +30,7 @@ const Temperature = () => {
         const historyData = await historyResponse.json();
         
         const formattedData = historyData.temperature_humidity_data.map((item) => ({
-          time: new Date(item.date).toLocaleTimeString(),
+          time: item.date,
           temperature: parseFloat(item.temperature),
           humidity: parseFloat(item.humidity)
         }));

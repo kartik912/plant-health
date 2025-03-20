@@ -2,8 +2,8 @@ import React from "react";
 import GaugeChart from "react-gauge-chart";
 
 const TDSGauge = ({ value, time }) => {
-  const normalizedValue = Math.min(Math.max(Number(value) || 0, 0), 2000);
-  const percentValue = normalizedValue / 2000;
+  const normalizedValue = Math.min(Math.max(Number(value) || 0, 0), 5);
+  const percentValue = normalizedValue / 5;
 
   return (
     <div className="w-full h-full p-6 rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 flex flex-col shadow-lg">
@@ -19,8 +19,8 @@ const TDSGauge = ({ value, time }) => {
           <GaugeChart
             id="ph-gauge"
             nrOfLevels={20}
-            arcsLength={[500 / 2000, 300 / 2000, 700 / 2000, 500 / 2000]}
-            colors={["#FF0F0F", "#00FF44", "#7FFF00", "#FF0F0F"]}
+            arcsLength={[1 / 5, 2 / 5, 3 / 5]}
+            colors={["#00FF44", "#7FFF00", "#FF0F0F"]}
             percent={percentValue}
             arcWidth={0.12}
             arcPadding={0.02}
@@ -44,7 +44,7 @@ const TDSGauge = ({ value, time }) => {
         {/* Value display below gauge */}
         <div className="mt-6 text-center bg-slate-700/30 px-6 py-3 rounded-lg">
           <span className="text-3xl font-bold text-white">{normalizedValue.toFixed(1)}</span>
-          <span className="text-lg text-slate-400 ml-2">ppm</span>
+          <span className="text-lg text-slate-400 ml-2">ms/cm</span>
         </div>
       </div>
 

@@ -14,7 +14,7 @@ const Pump = (props) => {
   
   // Store original ranges for when sensors are turned back on
   const [phOriginalRange, setPhOriginalRange] = useState({ min: 5.5, max: 7.5 });
-  const [tdsOriginalRange, setTdsOriginalRange] = useState({ min: 500, max: 1500 });
+  const [tdsOriginalRange, setTdsOriginalRange] = useState({ min: 1, max: 3 });
   
   // Added states for sensor limits
   const [phLimits, setPhLimits] = useState({
@@ -24,8 +24,8 @@ const Pump = (props) => {
   });
   
   const [tdsLimits, setTdsLimits] = useState({
-    min: 500,
-    max: 1500,
+    min: 1,
+    max: 3,
     active: true
   });
 
@@ -234,7 +234,7 @@ const Pump = (props) => {
             ...tdsLimits,
             active: false,
             min: 0,
-            max: 3000
+            max: 20
           });
           
           // Auto-save when turning off
@@ -304,7 +304,7 @@ const Pump = (props) => {
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-3 ${tdsLimits.active ? "bg-purple-400" : "bg-slate-400"}`}></div>
                 <div>
-                  <p className="text-slate-300 text-sm font-medium">TDS Monitoring</p>
+                  <p className="text-slate-300 text-sm font-medium">EC Monitoring</p>
                   <p className="text-sm font-semibold text-white">
                     {tdsLimits.active ? `${tdsLimits.min} - ${tdsLimits.max} ppm` : "Disabled"}
                   </p>
@@ -412,7 +412,7 @@ const Pump = (props) => {
           <div className="flex items-center">
             <div className={`w-2 h-2 rounded-full mr-2 ${tdsLimits.active ? "bg-purple-400" : "bg-slate-400"}`}></div>
             <span className={`text-sm font-medium ${tdsLimits.active ? "text-purple-400" : "text-slate-500"}`}>
-              TDS Sensor
+              EC Sensor
             </span>
           </div>
           <label className="flex items-center cursor-pointer">
@@ -434,30 +434,30 @@ const Pump = (props) => {
           <>
             <div className="grid grid-cols-2 gap-6 mb-4">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Min TDS (ppm)</label>
+                <label className="block text-xs text-slate-400 mb-1">Min Ec (ms/cm)</label>
                 <input 
                   type="number" 
                   value={tdsLimits.min}
                   onChange={(e) => handleInputChange("tds", "min", e.target.value)}
                   min="0" 
-                  max="3000"
-                  step="10"
+                  max="20"
+                  step="0.5"
                   className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
                 />
-                <p className="mt-1 text-xs text-slate-500">When TDS drops below this value, nutrient solution (Pump 1) will activate</p>
+                <p className="mt-1 text-xs text-slate-500">Nutrient A (Pump 1) will activate</p>
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Max TDS (ppm)</label>
+                <label className="block text-xs text-slate-400 mb-1">Max EC (ms/cm)</label>
                 <input 
                   type="number" 
                   value={tdsLimits.max}
                   onChange={(e) => handleInputChange("tds", "max", e.target.value)}
                   min="0" 
-                  max="3000"
-                  step="10"
+                  max="20"
+                  step="0.5"
                   className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
                 />
-                <p className="mt-1 text-xs text-slate-500">When TDS rises above this value, water (Pump 2) will activate to dilute</p>
+                <p className="mt-1 text-xs text-slate-500">Nutrients B(Pump 2) will activate </p>
               </div>
             </div>
             
@@ -468,7 +468,7 @@ const Pump = (props) => {
                 <span className="text-xs text-slate-400">0</span>
                 <span className="text-xs text-purple-400">{tdsLimits.min}</span>
                 <span className="text-xs text-purple-400">{tdsLimits.max}</span>
-                <span className="text-xs text-slate-400">3000</span>
+                <span className="text-xs text-slate-400">20</span>
               </div>
             </div>
           </>
@@ -494,7 +494,7 @@ const Pump = (props) => {
                 <div className="flex items-start">
                   <div className="text-blue-400 mr-3 text-lg">ℹ️</div>
                   <p className="text-xs text-slate-400">
-                    Sensor monitoring automatically prevents pumps from activating when pH or TDS levels are outside the specified ranges. When toggling a sensor OFF, its range is automatically set to full scale (0-14 for pH, 0-3000 for TDS).
+                    Sensor monitoring automatically prevents pumps from activating when pH or EC levels are outside the specified ranges.
                   </p>
                 </div>
               </div>
@@ -518,7 +518,7 @@ const Pump = (props) => {
               
               {/* Duration Selector */}
               <div className="mb-8 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-emerald-500/20 transition-colors duration-300">
-                <label className="block mb-3 text-slate-300 text-sm font-medium">Duration (seconds):</label>
+                <label className="block mb-3 text-slate-300 text-sm font-medium">Duration (1sec = 1ml):</label>
                 <div className="flex items-center gap-4">
                   <input 
                     type="range" 

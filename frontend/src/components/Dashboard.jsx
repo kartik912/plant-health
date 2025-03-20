@@ -105,7 +105,7 @@ const Dashboard = () => {
           
           if (tempHumItem) {
             mergedData.push({
-              time: new Date(tempHumItem.date).toLocaleTimeString(),
+              time: tempHumItem.date,
               temperature: safeParseFloat(tempHumItem.temperature),
               humidity: safeParseFloat(tempHumItem.humidity),
               ph: phItem ? safeParseFloat(phItem.ph_value) : null,
@@ -332,7 +332,7 @@ const Dashboard = () => {
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 6, stroke: '#4BC0C0', strokeWidth: 2 }}
-                  name="TDS" 
+                  name="EC" 
                 />
                 
               </LineChart>

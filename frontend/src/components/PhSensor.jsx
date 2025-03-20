@@ -27,7 +27,7 @@ const PHSensor = () => {
         const formattedData = data.ph_data.map((item) => {
           const phValue = parseFloat(item.ph_value);
           return {
-            time: new Date(item.timestamp).toLocaleTimeString(),
+            time: item.timestamp,
             value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
             state: getPHState(isNaN(phValue) ? 0 : phValue)
           };

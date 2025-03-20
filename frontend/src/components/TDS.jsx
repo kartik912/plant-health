@@ -20,11 +20,14 @@ const TDS = () => {
       try {
         const historyResponse = await fetch(`${url}/get_tds_history`);
         const historyData = await historyResponse.json();
-        const formattedData = historyData.tds_data.map(item => ({
-          time: new Date(item.date).toLocaleTimeString(),
-          tds_value: parseFloat(item.tds_value)
-        }));
-        
+        const formattedData = historyData.tds_data.map(item => {
+          const timeValue = new Date(item.date).toLocaleTimeString();
+          console.log("Raw date:", item.date, " | Processed time:", timeValue);
+          return {
+            time: item.date,
+            tds_value: parseFloat(item.tds_value)
+          };
+        });
         // Set historical data
         setTdsData(formattedData);
         
@@ -60,10 +63,10 @@ const TDS = () => {
             <div className="grid grid-cols-1 gap-4">
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
                 <div className="flex items-center gap-2 text-lg font-medium text-rose-400">
-                  Current TDS Level
+                  Current EC Level
                 </div>
                 <div className="mt-2 text-3xl font-bold text-white">
-                  {currentTDS} ppm
+                  {currentTDS} ms/cm
                 </div>
               </div>
             </div>
@@ -99,7 +102,7 @@ const TDS = () => {
                     stroke="#fb7185"
                     strokeWidth={2}
                     dot={false}
-                    name="TDS (ppm)"
+                    name="EC (ms/cm)"
                   />
                 </LineChart>
               </ResponsiveContainer>

@@ -90,20 +90,28 @@ const History = () => {
       try {
         const historyResponse = await fetch(`${url}/get_temperature_humidity_history`);
         const historyData = await historyResponse.json();
-        
-        const formattedData = historyData.temperature_humidity_data.map((item) => ({
-          time: new Date(item.date).toLocaleTimeString(),
-          date: new Date(item.date), // Keep the date object for sorting
-          temperature: parseFloat(item.temperature),
-          humidity: parseFloat(item.humidity)
-        }));
-        
+
+        const formattedData = historyData.temperature_humidity_data.map(item => {
+          // Parse the timestamp manually to handle the IST timezone
+          const timestampStr = item.date;
+          // Remove the IST part and replace with a standard timezone offset
+          const standardTimestamp = timestampStr.includes("IST") 
+            ? timestampStr.replace(" IST", "+05:30") 
+            : timestampStr;
+          
+          return {
+            time: item.date, // Keep original for display
+            date: new Date(standardTimestamp), // Create proper date object
+            temperature: parseFloat(item.temperature),
+            humidity: parseFloat(item.humidity)
+          };
+        });
+
         // Sort by date descending (newest first) and take only top 10
         const sortedData = formattedData
-          .sort((a, b) => b.date - a.date)
-          .slice(0, 10)
-          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
-        
+          .sort((a, b) => b.date - a.date) // Use the date object for sorting
+          .slice(0, 10);
+
         setTemperatureHumidityData(sortedData);
       } catch (error) {
         console.error("Error fetching temperature and humidity data:", error);
@@ -151,18 +159,27 @@ const History = () => {
       try {
         const historyResponse = await fetch(`${url}/get_tds_history`);
         const historyData = await historyResponse.json();
-        const formattedData = historyData.tds_data.map(item => ({
-          time: new Date(item.date).toLocaleTimeString(),
-          date: new Date(item.date), // Keep the date object for sorting
-          tds_value: parseFloat(item.tds_value)
-        }));
-        
+
+        const formattedData = historyData.tds_data.map(item => {
+          // Parse the timestamp manually to handle the IST timezone
+          const timestampStr = item.date;
+          // Remove the IST part and replace with a standard timezone offset
+          const standardTimestamp = timestampStr.includes("IST") 
+            ? timestampStr.replace(" IST", "+05:30") 
+            : timestampStr;
+          
+          return {
+            time: item.date, // Keep original for display
+            date: new Date(standardTimestamp), // Create proper date object
+            tds_value: parseFloat(item.tds_value)
+          };
+        });
+
         // Sort by date descending (newest first) and take only top 10
         const sortedData = formattedData
-          .sort((a, b) => b.date - a.date)
-          .slice(0, 10)
-          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
-        
+          .sort((a, b) => b.date - a.date) // Use the date object for sorting
+          .slice(0, 10);
+
         setTdsData(sortedData);
       } catch (error) {
         console.error("Error fetching TDS data:", error);
@@ -178,18 +195,26 @@ const History = () => {
       try {
         const historyResponse = await fetch(`${url}/get_ph_history`);
         const historyData = await historyResponse.json();
-        const formattedData = historyData.ph_data.map(item => ({
-          time: new Date(item.timestamp).toLocaleTimeString(),
-          date: new Date(item.timestamp), // Keep the date object for sorting
-          ph_value: parseFloat(item.ph_value)
-        }));
-        
+
+        const formattedData = historyData.ph_data.map(item => {
+          // Parse the timestamp manually to handle the IST timezone
+          const timestampStr = item.timestamp;
+          // Remove the IST part and replace with a standard timezone offset
+          // IST is typically UTC+5:30
+          const standardTimestamp = timestampStr.replace(" IST", "+05:30");
+          
+          return {
+            time: item.timestamp, // Keep original for display
+            date: new Date(standardTimestamp), // Create proper date object
+            ph_value: parseFloat(item.ph_value)
+          };
+        });
+
         // Sort by date descending (newest first) and take only top 10
         const sortedData = formattedData
-          .sort((a, b) => b.date - a.date)
-          .slice(0, 10)
-          .map(({ date, ...rest }) => rest); // Remove the date object after sorting
-        
+          .sort((a, b) => b.date - a.date) // Use the date object for sorting
+          .slice(0, 10);
+                
         setPHData(sortedData);
       } catch (error) {
         console.error("Error fetching PH data:", error);
@@ -288,7 +313,7 @@ const History = () => {
             {/* TDS History */}
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/30 overflow-hidden h-96 flex flex-col">
               <div className="p-3 bg-slate-700/30 flex justify-between items-center">
-                <h3 className="font-medium text-blue-400">TDS History</h3>
+                <h3 className="font-medium text-blue-400">EC History</h3>
                 <button
                   onClick={deleteTDSHistory}
                   className="px-3 py-1 bg-red-600/80 hover:bg-red-700 text-white text-sm rounded-md transition"
@@ -310,7 +335,7 @@ const History = () => {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-400 text-center pt-8">No TDS history available.</p>
+                  <p className="text-slate-400 text-center pt-8">No EC history available.</p>
                 )}
               </div>
             </div>

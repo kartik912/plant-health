@@ -9,6 +9,7 @@ from grove.grove_moisture_sensor import GroveMoistureSensor
 from grove.adc import ADC
 from picamera2 import Picamera2,Preview
 import adafruit_dht
+from grove_ec_sensor import GroveEC 
 # from gpiozero import Servo
 from reportlab.pdfgen import canvas
 from datetime import datetime
@@ -49,7 +50,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(600) #10 mins
+        time.sleep(600) #10 mins = 600  #3hr = 10800
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 6   # GPIO5
@@ -101,8 +102,8 @@ def check_and_adjust_sensors():
     ph_min = 5.5
     ph_max = 7.5
     ph_active = True
-    tds_min = 500
-    tds_max = 1500
+    tds_min = 1.0
+    tds_max = 2.0
     tds_active = True
     
     # Update with database values if available
@@ -133,10 +134,6 @@ def check_and_adjust_sensors():
             pump4_forward()
             time.sleep(3.3)   
             pump4_stop()
-            # Start a timer to auto-stop the pump after 5 seconds
-            # stop_thread = threading.Thread(target=auto_stop_pump, args=(4, 5))
-            # stop_thread.daemon = True
-            # stop_thread.start()
     
     # Check TDS levels and adjust if needed
     if tds_data and tds_active:
@@ -146,27 +143,12 @@ def check_and_adjust_sensors():
             # TDS too low, activate pump 1 (nutrient pump)
             print(f"TDS {tds_value} below minimum {tds_min}, activating pump 1")
             pump1_forward()
-            time.sleep(5)
+            time.sleep(3.3)
             pump1_stop()
-            time.sleep(5)
+            time.sleep(10)
             pump2_forward()
-            time.sleep(5)
+            time.sleep(3.3)
             pump2_stop()
-            # Start a timer to auto-stop the pump after 5 seconds
-            # stop_thread = threading.Thread(target=auto_stop_pump, args=(1, 5))
-            # stop_thread.daemon = True
-            # stop_thread.start()
-            
-        # elif tds_value > tds_max:
-        #     # TDS too high, activate pump 2 (water pump to dilute)
-        #     print(f"TDS {tds_value} above maximum {tds_max}, activating pump 2")
-        #     pump2_forward()
-        #     time.sleep(5)
-        #     pump2_stop()
-            # Start a timer to auto-stop the pump after 5 seconds
-            # stop_thread = threading.Thread(target=auto_stop_pump, args=(2, 5))
-            # stop_thread.daemon = True
-            # stop_thread.start()
             
 
 def pump1_forward():
@@ -293,6 +275,7 @@ def get_location():
     except Exception as e:
         return {"error": str(e)}
 # ----------------------------------------------------------------------------------------
+# ec sensro ---------------------------------------------------------------------------
 
 # class for tds sensor----------------------------------------------------------------
 
@@ -893,12 +876,31 @@ def delete_moisture_data():
 @app.route("/get_tds", methods=["GET"])
 def get_tds():
     try:
-        tds_value = tdssensor.TDS
-        if tds_value:
-            new_data = TDSData(tds_value=tds_value)
+        #move motor in water 90 degrees()
+        #sleep(5)
+        ec_sensor = GroveEC(channel=2, window_size=50)
+        ec_sensor.begin()
+
+        ec_readings = []
+
+        voltage = ec_sensor.read_voltage()
+                
+        # Get EC value with temperature compensation
+        ec_value = ec_sensor.read_EC(voltage, 25)
+
+        # Store reading
+        ec_readings.append(ec_value)
+        if len(ec_readings) > 10:
+            ec_readings.pop(0)  # Keep last 10 readings
+
+        # Calculate stable EC value
+        stable_ec = np.median(ec_readings) if ec_readings else ec_value
+        #motor back to original position
+        if stable_ec:
+            new_data = TDSData(tds_value=stable_ec)
             db.session.add(new_data)
             db.session.commit()
-            return jsonify({"tds_value": tds_value}), 200
+            return jsonify({"tds_value": stable_ec}), 200
         else:
             return jsonify({"message": "Failed to read TDS sensor data"}), 400
     except Exception as e:
@@ -1032,10 +1034,10 @@ def download_database_pdf():
                 y = 750
         
         #add tds data
-        pdf.drawString(50, y - 20, "TDS History:")
+        pdf.drawString(50, y - 20, "EC History:")
         y -= 40
         for data in tds_data:
-            pdf.drawString(60, y, f"TDS Value: {data.tds_value}, Date: {data.date}")
+            pdf.drawString(60, y, f"EC Value: {data.tds_value}, Date: {data.date}")
             y -= 20
             if y < 50:
                 pdf.showPage()
@@ -1070,7 +1072,7 @@ def download_database_csv():
         csv_buffer = io.StringIO()
         
         # Write header for combined data
-        csv_buffer.write("Date,Temperature (°C),Humidity (%),pH,TDS,Time\n")
+        csv_buffer.write("Date,Temperature (°C),Humidity (%),pH,EC,Time\n")
         
         # Create a dictionary to store data by date
         combined_data = {}

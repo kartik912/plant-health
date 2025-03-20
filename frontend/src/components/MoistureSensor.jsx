@@ -25,7 +25,7 @@ const MoistureSensor = () => {
         const response = await fetch(`${url}/get_moisture_data`);
         const data = await response.json();
         const formattedData = data.moisture_data.map((item) => ({
-          time: new Date(item.date).toLocaleTimeString(),
+          time: item.date,
           level: parseFloat(item.moisture_level),
           state: item.state,
         }));
