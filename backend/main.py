@@ -53,13 +53,13 @@ def fetch_sensor_data():
         time.sleep(600) #10 mins = 600  #3hr = 10800
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 6   # GPIO5
+PUMP1_IN1 = 11   # GPIO5
 PUMP1_IN2 = 13  # GPIO13
 PUMP2_IN3 = 26  # GPIO26
 PUMP2_IN4 = 17  # GPIO17
 
 # second chip
-PUMP3_IN1 = 18  # GPIO18 (D7)
+PUMP3_IN1 = 24  # GPIO18 (D7)
 PUMP3_IN2 = 19  # GPIO19 (PWM1)
 PUMP4_IN3 = 20  # GPIO20
 PUMP4_IN4 = 21  # GPIO21
