@@ -1053,6 +1053,147 @@ def download_database_pdf():
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
+
+'''
+this will delete all but the latest 10 entries in the database for each sensor type.
+
+def download_database_csv():
+    try:
+        import io
+        from io import BytesIO
+        import pytz
+        from sqlalchemy import desc
+        
+        # Configure timezone - use the same timezone as in your models
+        DEFAULT_TIMEZONE = pytz.timezone('Asia/Kolkata')  # Change to match your models file
+        
+        # Query data from all tables
+        temp_humidity_data = TemperatureHumidityData.query.all()
+        ph_data = PHData.query.all()
+        tds_data = TDSData.query.all()
+        
+        # Create an in-memory file
+        csv_buffer = io.StringIO()
+        
+        # Write header for combined data
+        csv_buffer.write("Date,Temperature (°C),Humidity (%),pH,EC,Time\n")
+        
+        # Create a dictionary to store data by date
+        combined_data = {}
+        
+        # Process temperature & humidity data
+        for data in temp_humidity_data:
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["temp"] = data.temperature
+            combined_data[date_str][time_str]["humidity"] = data.humidity
+        
+        # Process pH data
+        for data in ph_data:
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.timestamp.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["ph"] = data.ph_value
+        
+        # Process TDS data
+        for data in tds_data:
+            # Convert naive datetime to aware datetime with proper timezone
+            localized_date = data.date.replace(tzinfo=pytz.UTC).astimezone(DEFAULT_TIMEZONE)
+            date_str = localized_date.strftime("%Y-%m-%d")
+            time_str = localized_date.strftime("%H:%M:%S")
+            
+            if date_str not in combined_data:
+                combined_data[date_str] = {}
+            
+            if time_str not in combined_data[date_str]:
+                combined_data[date_str][time_str] = {"temp": None, "humidity": None, "ph": None, "tds": None}
+            
+            combined_data[date_str][time_str]["tds"] = data.tds_value
+        
+        # Write combined data to CSV
+        for date_str in sorted(combined_data.keys()):
+            for time_str in sorted(combined_data[date_str].keys()):
+                data_point = combined_data[date_str][time_str]
+                csv_buffer.write(f"{date_str},{data_point['temp'] or ''},{data_point['humidity'] or ''},{data_point['ph'] or ''},{data_point['tds'] or ''},{time_str}\n")
+        
+        # Convert to BytesIO for sending file
+        bytes_buffer = BytesIO()
+        bytes_buffer.write(csv_buffer.getvalue().encode('utf-8'))
+        bytes_buffer.seek(0)
+        
+        # Store IDs of records to keep (latest 10 entries for each sensor type)
+        
+        # For temperature and humidity (assuming they are in the same table with same timestamp)
+        temp_humidity_keep = TemperatureHumidityData.query.order_by(
+            desc(TemperatureHumidityData.date)
+        ).limit(10).all()
+        temp_humidity_ids_to_keep = [record.id for record in temp_humidity_keep]
+        
+        # For pH data
+        ph_keep = PHData.query.order_by(
+            desc(PHData.timestamp)
+        ).limit(10).all()
+        ph_ids_to_keep = [record.id for record in ph_keep]
+        
+        # For TDS data
+        tds_keep = TDSData.query.order_by(
+            desc(TDSData.date)
+        ).limit(10).all()
+        tds_ids_to_keep = [record.id for record in tds_keep]
+        
+        # Delete old records (keeping the latest 10 for each sensor type)
+        try:
+            # Delete old temperature & humidity records
+            TemperatureHumidityData.query.filter(
+                ~TemperatureHumidityData.id.in_(temp_humidity_ids_to_keep)
+            ).delete(synchronize_session=False)
+            
+            # Delete old pH records
+            PHData.query.filter(
+                ~PHData.id.in_(ph_ids_to_keep)
+            ).delete(synchronize_session=False)
+            
+            # Delete old TDS records
+            TDSData.query.filter(
+                ~TDSData.id.in_(tds_ids_to_keep)
+            ).delete(synchronize_session=False)
+            
+            # Commit the changes
+            db.session.commit()
+        except Exception as delete_error:
+            db.session.rollback()
+            # If deletion fails, still return the file but log the error
+            print(f"Error during database cleanup: {str(delete_error)}")
+        
+        # Return the CSV as a downloadable file
+        return send_file(
+            bytes_buffer, 
+            as_attachment=True,
+            download_name="sensor_data.csv", 
+            mimetype="text/csv"
+        )
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+'''
+
 @app.route("/download_database_csv", methods=["GET"])
 def download_database_csv():
     try:
