@@ -15,6 +15,7 @@ const Pump = (props) => {
   // Store original ranges for when sensors are turned back on
   const [phOriginalRange, setPhOriginalRange] = useState({ min: 5.5, max: 7.5 });
   const [tdsOriginalRange, setTdsOriginalRange] = useState({ min: 1, max: 3 });
+  const [humidityOriginalRange, setHumidityOriginalRange] = useState({ min: 40, max: 70 });
   
   // Added states for sensor limits
   const [phLimits, setPhLimits] = useState({
@@ -26,6 +27,12 @@ const Pump = (props) => {
   const [tdsLimits, setTdsLimits] = useState({
     min: 1,
     max: 3,
+    active: true
+  });
+
+  const [humidityLimits, setHumidityLimits] = useState({
+    min: 40,
+    max: 60,
     active: true
   });
 
@@ -126,6 +133,12 @@ const Pump = (props) => {
             setPhOriginalRange({ min: data.ph.min, max: data.ph.max });
           }
         }
+        if (data.humidity) {
+          setHumidityLimits(data.humidity);
+          if (data.humidity.active) {
+            setHumidityOriginalRange({ min: data.humidity.min, max: data.humidity.max });
+          }
+        }
         if (data.tds) {
           setTdsLimits(data.tds);
           if (data.tds.active) {
@@ -156,6 +169,11 @@ const Pump = (props) => {
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }
+      if (humidityLimits.active && (humidityLimits.max - humidityLimits.min < 10)) {
+        setSaveStatus("Humidity range needs to be at least 10");
+        setTimeout(() => setSaveStatus(""), 3000);
+        return;
+      }
       
       setSaveStatus("Saving...");
       const response = await fetch(`${url}/sensor/limits`, {
@@ -165,7 +183,8 @@ const Pump = (props) => {
         },
         body: JSON.stringify({ 
           ph: phLimits,
-          tds: tdsLimits
+          tds: tdsLimits,
+          humidity: humidityLimits
         }),
       });
       
@@ -249,6 +268,38 @@ const Pump = (props) => {
           [field]: parseFloat(value)
         });
       }
+    } else if (sensor === "humidity") {
+      if (field === "active") {
+        if (value) {
+          // Turning ON - restore original range
+          setHumidityLimits({
+            ...humidityLimits,
+            active: true,
+            min: humidityOriginalRange.min,
+            max: humidityOriginalRange.max
+          });
+        } else {
+          // Turning OFF - save current range and set full range
+          setHumidityOriginalRange({ min: humidityLimits.min, max: humidityLimits.max });
+          setHumidityLimits({
+            ...humidityLimits,
+            active: false,
+            min: 0,
+            max: 100
+          });
+          
+          // Auto-save when turning off
+          setTimeout(() => {
+            updateSensorLimits();
+          }, 100);
+        }
+      } else {
+        // Normal field update
+        setHumidityLimits({
+          ...humidityLimits,
+          [field]: parseFloat(value)
+        });
+      }
     }
   };
   
@@ -312,6 +363,16 @@ const Pump = (props) => {
               </div>
               
               <div className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-3 ${humidityLimits.active ? "bg-orange-400" : "bg-slate-400"}`}></div>
+                <div>
+                  <p className="text-slate-300 text-sm font-medium">Humidity Monitoring</p>
+                  <p className="text-sm font-semibold text-white">
+                    {humidityLimits.active ? `${humidityLimits.min} - ${humidityLimits.max}%` : "Disabled"}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center">
                 <div>
                   <p className="text-slate-300 text-sm font-medium">Pump Duration</p>
                   <p className="text-sm font-semibold text-emerald-400">{duration} seconds</p>
@@ -322,179 +383,249 @@ const Pump = (props) => {
         </div>
         
         <div className="flex flex-col lg:flex-row gap-8">
-  {/* Sensor Limits Panel */}
-  <div className="w-full lg:w-1/2">
-    <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-slate-800/90 rounded-xl p-6 shadow-lg border border-slate-700/30 backdrop-blur-sm text-white h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-          Sensor Limits
-        </h3>
-        <div className="flex items-center bg-slate-800/70 px-3 py-1 rounded-full border border-slate-700/50">
-          <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active || tdsLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
-          <span className="text-xs font-medium text-slate-300">
-            {phLimits.active || tdsLimits.active ? "Monitoring Active" : "Monitoring Off"}
-          </span>
-        </div>
-      </div>
-      
-      {/* pH Sensor Limits */}
-      <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-blue-500/20 transition-colors duration-300">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center">
-            <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
-            <span className={`text-sm font-medium ${phLimits.active ? "text-blue-400" : "text-slate-500"}`}>
-              pH Sensor
-            </span>
-          </div>
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={phLimits.active}
-                onChange={(e) => handleInputChange("ph", "active", e.target.checked)}
-              />
-              <div className={`block w-12 h-6 rounded-full ${phLimits.active ? 'bg-blue-500/50' : 'bg-slate-600/30'}`}></div>
-              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${phLimits.active ? 'transform translate-x-6' : ''}`}></div>
-            </div>
-            <span className="ml-2 text-xs font-medium text-slate-300">{phLimits.active ? 'ON' : 'OFF'}</span>
-          </label>
-        </div>
-        
-        {phLimits.active && (
-          <>
-            <div className="grid grid-cols-2 gap-6 mb-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Min pH</label>
-                <input 
-                  type="number" 
-                  value={phLimits.min}
-                  onChange={(e) => handleInputChange("ph", "min", e.target.value)}
-                  min="0" 
-                  max="14"
-                  step="0.1"
-                  className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-blue-300 text-sm focus:border-blue-500/50 focus:outline-none"
-                />
-                <p className="mt-1 text-xs text-slate-500">When pH drops below this value, base solution (Pump 3) will activate</p>
+          {/* Sensor Limits Panel */}
+          <div className="w-full lg:w-1/2">
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-slate-800/90 rounded-xl p-6 shadow-lg border border-slate-700/30 backdrop-blur-sm text-white h-full">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                  Sensor Limits
+                </h3>
+                <div className="flex items-center bg-slate-800/70 px-3 py-1 rounded-full border border-slate-700/50">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active || tdsLimits.active || humidityLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
+                  <span className="text-xs font-medium text-slate-300">
+                    {phLimits.active || tdsLimits.active || humidityLimits.active ? "Monitoring Active" : "Monitoring Off"}
+                  </span>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Max pH</label>
-                <input 
-                  type="number" 
-                  value={phLimits.max}
-                  onChange={(e) => handleInputChange("ph", "max", e.target.value)}
-                  min="0" 
-                  max="14"
-                  step="0.1"
-                  className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-blue-300 text-sm focus:border-blue-500/50 focus:outline-none"
-                />
-                <p className="mt-1 text-xs text-slate-500">When pH rises above this value, acid solution (Pump 4) will activate</p>
+              
+              {/* pH Sensor Limits */}
+              <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-blue-500/20 transition-colors duration-300">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
+                    <span className={`text-sm font-medium ${phLimits.active ? "text-blue-400" : "text-slate-500"}`}>
+                      pH Sensor
+                    </span>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={phLimits.active}
+                        onChange={(e) => handleInputChange("ph", "active", e.target.checked)}
+                      />
+                      <div className={`block w-12 h-6 rounded-full ${phLimits.active ? 'bg-blue-500/50' : 'bg-slate-600/30'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${phLimits.active ? 'transform translate-x-6' : ''}`}></div>
+                    </div>
+                    <span className="ml-2 text-xs font-medium text-slate-300">{phLimits.active ? 'ON' : 'OFF'}</span>
+                  </label>
+                </div>
+                
+                {phLimits.active && (
+                  <>
+                    <div className="grid grid-cols-2 gap-6 mb-4">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Min pH</label>
+                        <input 
+                          type="number" 
+                          value={phLimits.min}
+                          onChange={(e) => handleInputChange("ph", "min", e.target.value)}
+                          min="0" 
+                          max="14"
+                          step="0.1"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-blue-300 text-sm focus:border-blue-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">When pH drops below this value, base solution (Pump 3) will activate</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Max pH</label>
+                        <input 
+                          type="number" 
+                          value={phLimits.max}
+                          onChange={(e) => handleInputChange("ph", "max", e.target.value)}
+                          min="0" 
+                          max="14"
+                          step="0.1"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-blue-300 text-sm focus:border-blue-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">When pH rises above this value, acid solution (Pump 4) will activate</p>
+                      </div>
+                    </div>
+                    
+                    {/* pH Range Visualization */}
+                    <div className="mt-4">
+                      <div className="h-2 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 to-blue-500 rounded-full"></div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-xs text-slate-400">0</span>
+                        <span className="text-xs text-blue-400">{phLimits.min}</span>
+                        <span className="text-xs text-blue-400">{phLimits.max}</span>
+                        <span className="text-xs text-slate-400">14</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-            
-            {/* pH Range Visualization */}
-            <div className="mt-4">
-              <div className="h-2 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 to-blue-500 rounded-full"></div>
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-slate-400">0</span>
-                <span className="text-xs text-blue-400">{phLimits.min}</span>
-                <span className="text-xs text-blue-400">{phLimits.max}</span>
-                <span className="text-xs text-slate-400">14</span>
+              
+              {/* TDS Sensor Limits */}
+              <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-purple-500/20 transition-colors duration-300">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${tdsLimits.active ? "bg-purple-400" : "bg-slate-400"}`}></div>
+                    <span className={`text-sm font-medium ${tdsLimits.active ? "text-purple-400" : "text-slate-500"}`}>
+                      EC Sensor
+                    </span>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={tdsLimits.active}
+                        onChange={(e) => handleInputChange("tds", "active", e.target.checked)}
+                      />
+                      <div className={`block w-12 h-6 rounded-full ${tdsLimits.active ? 'bg-purple-500/50' : 'bg-slate-600/30'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${tdsLimits.active ? 'transform translate-x-6' : ''}`}></div>
+                    </div>
+                    <span className="ml-2 text-xs font-medium text-slate-300">{tdsLimits.active ? 'ON' : 'OFF'}</span>
+                  </label>
+                </div>
+                
+                {tdsLimits.active && (
+                  <>
+                    <div className="grid grid-cols-2 gap-6 mb-4">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Min Ec (ms/cm)</label>
+                        <input 
+                          type="number" 
+                          value={tdsLimits.min}
+                          onChange={(e) => handleInputChange("tds", "min", e.target.value)}
+                          min="0" 
+                          max="20"
+                          step="0.5"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Nutrient A (Pump 1) will activate</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Max EC (ms/cm)</label>
+                        <input 
+                          type="number" 
+                          value={tdsLimits.max}
+                          onChange={(e) => handleInputChange("tds", "max", e.target.value)}
+                          min="0" 
+                          max="20"
+                          step="0.5"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Nutrients B(Pump 2) will activate </p>
+                      </div>
+                    </div>
+                    
+                    {/* TDS Range Visualization */}
+                    <div className="mt-4">
+                      <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-xs text-slate-400">0</span>
+                        <span className="text-xs text-purple-400">{tdsLimits.min}</span>
+                        <span className="text-xs text-purple-400">{tdsLimits.max}</span>
+                        <span className="text-xs text-slate-400">20</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          </>
-        )}
-      </div>
-      
-      {/* TDS Sensor Limits */}
-      <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-purple-500/20 transition-colors duration-300">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center">
-            <div className={`w-2 h-2 rounded-full mr-2 ${tdsLimits.active ? "bg-purple-400" : "bg-slate-400"}`}></div>
-            <span className={`text-sm font-medium ${tdsLimits.active ? "text-purple-400" : "text-slate-500"}`}>
-              EC Sensor
-            </span>
-          </div>
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={tdsLimits.active}
-                onChange={(e) => handleInputChange("tds", "active", e.target.checked)}
-              />
-              <div className={`block w-12 h-6 rounded-full ${tdsLimits.active ? 'bg-purple-500/50' : 'bg-slate-600/30'}`}></div>
-              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${tdsLimits.active ? 'transform translate-x-6' : ''}`}></div>
-            </div>
-            <span className="ml-2 text-xs font-medium text-slate-300">{tdsLimits.active ? 'ON' : 'OFF'}</span>
-          </label>
-        </div>
-        
-        {tdsLimits.active && (
-          <>
-            <div className="grid grid-cols-2 gap-6 mb-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Min Ec (ms/cm)</label>
-                <input 
-                  type="number" 
-                  value={tdsLimits.min}
-                  onChange={(e) => handleInputChange("tds", "min", e.target.value)}
-                  min="0" 
-                  max="20"
-                  step="0.5"
-                  className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
-                />
-                <p className="mt-1 text-xs text-slate-500">Nutrient A (Pump 1) will activate</p>
+              
+              {/* Humidity Sensor Limits */}
+              <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-orange-500/20 transition-colors duration-300">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${humidityLimits.active ? "bg-orange-400" : "bg-slate-400"}`}></div>
+                    <span className={`text-sm font-medium ${humidityLimits.active ? "text-orange-400" : "text-slate-500"}`}>
+                      Humidity Sensor
+                    </span>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={humidityLimits.active}
+                        onChange={(e) => handleInputChange("humidity", "active", e.target.checked)}
+                      />
+                      <div className={`block w-12 h-6 rounded-full ${humidityLimits.active ? 'bg-orange-500/50' : 'bg-slate-600/30'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${humidityLimits.active ? 'transform translate-x-6' : ''}`}></div>
+                    </div>
+                    <span className="ml-2 text-xs font-medium text-slate-300">{humidityLimits.active ? 'ON' : 'OFF'}</span>
+                  </label>
+                </div>
+                
+                {humidityLimits.active && (
+                  <>
+                    <div className="grid grid-cols-2 gap-6 mb-4">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Min Humidity (%)</label>
+                        <input 
+                          type="number" 
+                          value={humidityLimits.min}
+                          onChange={(e) => handleInputChange("humidity", "min", e.target.value)}
+                          min="0" 
+                          max="100"
+                          step="1"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-orange-300 text-sm focus:border-orange-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">When humidity drops below this value, humidifier will activate</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Max Humidity (%)</label>
+                        <input 
+                          type="number" 
+                          value={humidityLimits.max}
+                          onChange={(e) => handleInputChange("humidity", "max", e.target.value)}
+                          min="0" 
+                          max="100"
+                          step="1"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-orange-300 text-sm focus:border-orange-500/50 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">When humidity rises above this value, dehumidifier will activate</p>
+                      </div>
+                    </div>
+                    
+                    {/* Humidity Range Visualization */}
+                    <div className="mt-4">
+                      <div className="h-2 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 rounded-full"></div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-xs text-slate-400">0%</span>
+                        <span className="text-xs text-orange-400">{humidityLimits.min}%</span>
+                        <span className="text-xs text-orange-400">{humidityLimits.max}%</span>
+                        <span className="text-xs text-slate-400">100%</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Max EC (ms/cm)</label>
-                <input 
-                  type="number" 
-                  value={tdsLimits.max}
-                  onChange={(e) => handleInputChange("tds", "max", e.target.value)}
-                  min="0" 
-                  max="20"
-                  step="0.5"
-                  className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-purple-300 text-sm focus:border-purple-500/50 focus:outline-none"
-                />
-                <p className="mt-1 text-xs text-slate-500">Nutrients B(Pump 2) will activate </p>
+              
+              {/* Save Button */}
+              <div className="flex items-center">
+                <button
+                  onClick={updateSensorLimits}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-all duration-300"
+                >
+                  Save Settings
+                </button>
+                {saveStatus && (
+                  <span className={`ml-4 text-sm ${saveStatus.includes('Error') ? 'text-red-400' : 'text-green-400'}`}>
+                    {saveStatus}
+                  </span>
+                )}
               </div>
-            </div>
-            
-            {/* TDS Range Visualization */}
-            <div className="mt-4">
-              <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-slate-400">0</span>
-                <span className="text-xs text-purple-400">{tdsLimits.min}</span>
-                <span className="text-xs text-purple-400">{tdsLimits.max}</span>
-                <span className="text-xs text-slate-400">20</span>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-      {/* Save Button */}
-      <div className="flex items-center">
-        <button
-          onClick={updateSensorLimits}
-          className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-all duration-300"
-        >
-          Save Settings
-        </button>
-        {saveStatus && (
-          <span className={`ml-4 text-sm ${saveStatus.includes('Error') ? 'text-red-400' : 'text-green-400'}`}>
-            {saveStatus}
-          </span>
-        )}
-      </div>
               
               {/* Information Card */}
               <div className="mt-6 bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
                 <div className="flex items-start">
                   <div className="text-blue-400 mr-3 text-lg">ℹ️</div>
                   <p className="text-xs text-slate-400">
-                    Sensor monitoring automatically prevents pumps from activating when pH or EC levels are outside the specified ranges.
+                    Sensor monitoring automatically prevents pumps from activating when pH, EC, or humidity levels are outside the specified ranges.
                   </p>
                 </div>
               </div>
@@ -554,7 +685,7 @@ const Pump = (props) => {
                   ))}
                 </div>
               </div>
-
+  
               {/* Individual Pump Controls */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {[1, 2, 3, 4].map((pumpId) => (
@@ -591,7 +722,7 @@ const Pump = (props) => {
                   </div>
                 ))}
               </div>
-
+  
               {/* All Pumps Controls */}
               <div className="grid grid-cols-2 gap-6 mt-8">
                 <button 

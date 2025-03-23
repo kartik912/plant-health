@@ -50,7 +50,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(600) #10 mins = 600  #3hr = 10800
+        time.sleep(5) #10 mins = 600  #3hr = 10800
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 11   # GPIO5
@@ -63,6 +63,10 @@ PUMP3_IN1 = 24  # GPIO18 (D7)
 PUMP3_IN2 = 19  # GPIO19 (PWM1)
 PUMP4_IN3 = 20  # GPIO20
 PUMP4_IN4 = 21  # GPIO21
+
+#relay setup
+RELAY_PIN = 16
+relay = OutputDevice(RELAY_PIN)
 
 # Initialize lgpio
 h = lgpio.gpiochip_open(0)  # Open GPIO chip 0
@@ -90,22 +94,27 @@ def check_and_adjust_sensors():
     """Check pH and TDS readings against set limits and activate pumps if needed"""
     # Import Flask app at the function level to avoid circular imports
     
-            # Get latest sensor readings
+    # Get latest sensor readings
     ph_data = PHData.query.order_by(PHData.id.desc()).first()
     tds_data = TDSData.query.order_by(TDSData.id.desc()).first()
+    humidity_data = TemperatureHumidityData.query.order_by(TemperatureHumidityData.id.desc()).first()
     
     # Get sensor limits
     ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
     tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+    humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
     
     # Default limits if none are set
     ph_min = 5.5
     ph_max = 7.5
     ph_active = True
-    tds_min = 1.0
-    tds_max = 2.0
+    tds_min = 500
+    tds_max = 1500
     tds_active = True
-    
+    humidity_min = 40
+    humidity_max = 70
+    humidity_active = True
+
     # Update with database values if available
     if ph_limit:
         ph_min = ph_limit.min_value
@@ -116,6 +125,11 @@ def check_and_adjust_sensors():
         tds_min = tds_limit.min_value
         tds_max = tds_limit.max_value
         tds_active = tds_limit.is_active
+    
+    if humidity_limit:  
+        humidity_min = humidity_limit.min_value
+        humidity_max = humidity_limit.max_value
+        humidity_active = humidity_limit.is_active
     
     # Check pH levels and adjust if needed
     if ph_data and ph_active:
@@ -143,12 +157,28 @@ def check_and_adjust_sensors():
             # TDS too low, activate pump 1 (nutrient pump)
             print(f"TDS {tds_value} below minimum {tds_min}, activating pump 1")
             pump1_forward()
-            time.sleep(3.3)
+            time.sleep(5)
             pump1_stop()
             time.sleep(10)
             pump2_forward()
-            time.sleep(3.3)
+            time.sleep(5)
             pump2_stop()
+        
+    # Check humidity levels and adjust if needed
+    if humidity_data and humidity_active:
+        humidity_value = humidity_data.humidity
+        
+        if humidity_value > humidity_max:
+            # Humidity too high, activate fan
+            print(f"Humidity {humidity_value} above maximum {humidity_max}, starting fan")
+            # Make sure relay is defined/imported  # Add proper import
+            relay.on()
+        
+        elif humidity_value < humidity_min:
+            # Humidity too low, stop fan
+            print(f"Humidity {humidity_value} below minimum {humidity_min}, stopping fan")
+            # Make sure relay is defined/imported  # Add proper import
+            relay.off()
             
 
 def pump1_forward():
@@ -381,9 +411,7 @@ def generate_frames():
 PHOTO_DIRECTORY = "captured_photos"
 os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
 #-------------------------------------------------------------------------------------
-#relay setup
-RELAY_PIN = 16
-relay = OutputDevice(RELAY_PIN)
+
 
 # #temperature and humidity sensor
 dht_sensor = adafruit_dht.DHT11(board.D5)
@@ -540,6 +568,8 @@ def get_sensor_limits():
             limits_dict["ph"] = {"min": 5.5, "max": 7.5, "active": True}
         if "tds" not in limits_dict:
             limits_dict["tds"] = {"min": 500, "max": 1500, "active": True}
+        if "humidity" not in limits_dict:
+            limits_dict["humidity"] = {"min": 40, "max": 70, "active": True}
             
         return jsonify(limits_dict), 200
     except Exception as e:
@@ -571,6 +601,26 @@ def update_sensor_limits():
                     is_active=ph_data["active"]
                 )
                 db.session.add(ph_limit)
+        #adding humidity data
+        if "humidity" in data:
+            humidity_data = data["humidity"]
+            humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
+            
+            if humidity_limit:
+                # Update existing record
+                humidity_limit.min_value = humidity_data["min"]
+                humidity_limit.max_value = humidity_data["max"]
+                humidity_limit.is_active = humidity_data["active"]
+                humidity_limit.updated_at = datetime.now()
+            else:
+                # Create new record
+                humidity_limit = SensorLimits(
+                    sensor_type="humidity",
+                    min_value=humidity_data["min"],
+                    max_value=humidity_data["max"],
+                    is_active=humidity_data["active"]
+                )
+                db.session.add(humidity_limit)
         
         # Update TDS limits
         if "tds" in data:
