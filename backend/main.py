@@ -1104,9 +1104,9 @@ def download_database_pdf():
         return jsonify({"message": str(e)}), 400
 
 
-'''
-this will delete all but the latest 10 entries in the database for each sensor type.
 
+#this will delete all but the latest 10 entries in the database for each sensor type.
+@app.route("/download_database_csv_auto", methods=["GET"])
 def download_database_csv():
     try:
         import io
@@ -1242,7 +1242,7 @@ def download_database_csv():
 
     except Exception as e:
         return jsonify({"message": str(e)}), 400
-'''
+
 
 @app.route("/download_database_csv", methods=["GET"])
 def download_database_csv():
