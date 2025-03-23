@@ -50,7 +50,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(5) #10 mins = 600  #3hr = 10800
+        time.sleep(7200) #10 mins = 600  #3hr = 10800  #7200 = 2hr
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 11   # GPIO5
@@ -139,14 +139,14 @@ def check_and_adjust_sensors():
             # pH too low, activate pump 3 (base pump)
             print(f"pH {ph_value} below minimum {ph_min}, activating pump 3")
             pump3_forward()
-            time.sleep(3.3)
+            time.sleep(3)
             pump3_stop()
             
         elif ph_value > ph_max:
             # pH too high, activate pump 4 (acid pump)
             print(f"pH {ph_value} above maximum {ph_max}, activating pump 4")
             pump4_forward()
-            time.sleep(3.3)   
+            time.sleep(3)   
             pump4_stop()
     
     # Check TDS levels and adjust if needed
@@ -154,8 +154,8 @@ def check_and_adjust_sensors():
         tds_value = tds_data.tds_value
         
         if tds_value < tds_min:
-            # TDS too low, activate pump 1 (nutrient pump)
-            print(f"TDS {tds_value} below minimum {tds_min}, activating pump 1")
+            # TDS too low, activate pump 1 and 2 (nutrient pumps)
+            print(f"TDS {tds_value} below minimum {tds_min}, activating pumps 1 and 2")
             pump1_forward()
             time.sleep(5)
             pump1_stop()
