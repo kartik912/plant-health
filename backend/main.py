@@ -50,19 +50,64 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(7200) #10 mins = 600  #3hr = 10800  #7200 = 2hr
+        time.sleep(5) #10 mins = 600  #3hr = 10800  #7200 = 2hr
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 11   # GPIO5
-PUMP1_IN2 = 13  # GPIO13
-PUMP2_IN3 = 26  # GPIO26
-PUMP2_IN4 = 17  # GPIO17
+PUMP1_IN1 = 11   
+PUMP1_IN2 = 13  
+PUMP2_IN3 = 26  
+PUMP2_IN4 = 17  
 
 # second chip
-PUMP3_IN1 = 24  # GPIO18 (D7)
-PUMP3_IN2 = 19  # GPIO19 (PWM1)
-PUMP4_IN3 = 20  # GPIO20
-PUMP4_IN4 = 21  # GPIO21
+PUMP3_IN1 = 24  
+PUMP3_IN2 = 19  
+PUMP4_IN3 = 20  
+PUMP4_IN4 = 21  
+
+RELAY_IN1 = 7
+RELAY_IN2 = 8
+RELAY_IN3 = 9
+RELAY_IN4 = 10
+
+# servo motor setup
+# Configuration
+SERVO_PIN = 12  # PWM pin you're using
+FREQUENCY = 50  # Standard servo PWM frequency (50 Hz)
+
+# Pulse width values for different angles
+# These may need fine-tuning based on your specific servo
+ANGLE_0 = 125.0   # Typically 0.5ms pulse width for 0 degrees
+ANGLE_90 = 60.5  # Typically 1.5ms pulse width for 90 degrees
+
+def setup_servo():
+    """Initialize the GPIO and PWM for the servo"""
+    h = lgpio.gpiochip_open(0)  # Open the GPIO chip
+    lgpio.gpio_claim_output(h, SERVO_PIN)
+    return h
+
+def set_servo_angle(h, angle):
+
+    if angle == 0:
+        pulse_width = ANGLE_0
+    elif angle == 90:
+        pulse_width = ANGLE_90
+    elif angle == 180:
+        pulse_width = ANGLE_180
+    else:
+        raise ValueError("Angle must be 0, 90, or 180 degrees")
+    
+    # Calculate duty cycle
+    duty_cycle = pulse_width / (1000 / FREQUENCY)
+    
+    # Set PWM
+    lgpio.tx_pwm(h, SERVO_PIN, FREQUENCY, duty_cycle)
+    time.sleep(0.5)  # Give time for servo to move
+
+def cleanup(h):
+    """Clean up GPIO resources"""
+    lgpio.gpiochip_close(h)
+
+handle = setup_servo()
 
 #relay setup
 RELAY_PIN = 16
@@ -72,8 +117,18 @@ relay = OutputDevice(RELAY_PIN)
 h = lgpio.gpiochip_open(0)  # Open GPIO chip 0
 
 # Setup pins as outputs
-for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4]:
+for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4, RELAY_IN1, RELAY_IN2, RELAY_IN3, RELAY_IN4]:
     lgpio.gpio_claim_output(h, pin)
+
+#RELAY PIN ON OFF
+def relay_on(relay_num):
+    lgpio.gpio_write(h, relay_num, 1)
+    print(f"Relay {relay_num} turned ON")
+
+# Function to turn a relay OFF
+def relay_off(relay_num):
+    lgpio.gpio_write(h, relay_num, 0)
+    print(f"Relay {relay_num} turned OFF")
 
 # Motor status
 pump_status = {
@@ -172,13 +227,16 @@ def check_and_adjust_sensors():
             # Humidity too high, activate fan
             print(f"Humidity {humidity_value} above maximum {humidity_max}, starting fan")
             # Make sure relay is defined/imported  # Add proper import
-            relay.on()
+            relay_on(RELAY_IN1)
+            relay_on(RELAY_IN2)
+
         
         elif humidity_value < humidity_min:
             # Humidity too low, stop fan
             print(f"Humidity {humidity_value} below minimum {humidity_min}, stopping fan")
             # Make sure relay is defined/imported  # Add proper import
-            relay.off()
+            relay_off(RELAY_IN1)
+            relay_off(RELAY_IN2)
             
 
 def pump1_forward():
@@ -926,8 +984,8 @@ def delete_moisture_data():
 @app.route("/get_tds", methods=["GET"])
 def get_tds():
     try:
-        #move motor in water 90 degrees()
-        #sleep(5)
+        set_servo_angle(handle, 0)
+        sleep(5)
         ec_sensor = GroveEC(channel=2, window_size=50)
         ec_sensor.begin()
 
@@ -945,7 +1003,7 @@ def get_tds():
 
         # Calculate stable EC value
         stable_ec = np.median(ec_readings) if ec_readings else ec_value
-        #motor back to original position
+        set_servo_angle(handle, 90)
         if stable_ec:
             new_data = TDSData(tds_value=stable_ec)
             db.session.add(new_data)
@@ -1107,7 +1165,7 @@ def download_database_pdf():
 
 #this will delete all but the latest 10 entries in the database for each sensor type.
 @app.route("/download_database_csv_auto", methods=["GET"])
-def download_database_csv():
+def download_database_csv_auto():
     try:
         import io
         from io import BytesIO
