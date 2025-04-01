@@ -50,7 +50,7 @@ def fetch_sensor_data():
         except Exception as e:
             print(f"Error fetching sensor data: {e}")
         
-        time.sleep(5) #10 mins = 600  #3hr = 10800  #7200 = 2hr
+        time.sleep(7200) #10 mins = 600  #3hr = 10800  #7200 = 2hr
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
 PUMP1_IN1 = 11   
@@ -64,10 +64,6 @@ PUMP3_IN2 = 19
 PUMP4_IN3 = 20  
 PUMP4_IN4 = 21  
 
-RELAY_IN1 = 7
-RELAY_IN2 = 8
-RELAY_IN3 = 9
-RELAY_IN4 = 10
 
 # servo motor setup
 # Configuration
@@ -117,18 +113,9 @@ relay = OutputDevice(RELAY_PIN)
 h = lgpio.gpiochip_open(0)  # Open GPIO chip 0
 
 # Setup pins as outputs
-for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4, RELAY_IN1, RELAY_IN2, RELAY_IN3, RELAY_IN4]:
+for pin in [PUMP1_IN1, PUMP1_IN2, PUMP2_IN3, PUMP2_IN4, PUMP3_IN1, PUMP3_IN2, PUMP4_IN3, PUMP4_IN4]:
     lgpio.gpio_claim_output(h, pin)
 
-#RELAY PIN ON OFF
-def relay_on(relay_num):
-    lgpio.gpio_write(h, relay_num, 1)
-    print(f"Relay {relay_num} turned ON")
-
-# Function to turn a relay OFF
-def relay_off(relay_num):
-    lgpio.gpio_write(h, relay_num, 0)
-    print(f"Relay {relay_num} turned OFF")
 
 # Motor status
 pump_status = {
@@ -145,6 +132,17 @@ pump_lock = threading.Lock()
 
 
 # Pump control functions----------------------------------------------------------------------------------------------------
+def check_humidity_regularly():
+    while True:
+        try:
+            # Only get temperature/humidity data and check it
+            requests.post("http://127.0.0.1:5000/check_humidity")
+            
+        except Exception as e:
+            print(f"Error checking humidity: {e}")
+        
+        time.sleep(600) #10min
+
 def check_and_adjust_sensors():
     """Check pH and TDS readings against set limits and activate pumps if needed"""
     # Import Flask app at the function level to avoid circular imports
@@ -152,12 +150,10 @@ def check_and_adjust_sensors():
     # Get latest sensor readings
     ph_data = PHData.query.order_by(PHData.id.desc()).first()
     tds_data = TDSData.query.order_by(TDSData.id.desc()).first()
-    humidity_data = TemperatureHumidityData.query.order_by(TemperatureHumidityData.id.desc()).first()
     
     # Get sensor limits
     ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
     tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
-    humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
     
     # Default limits if none are set
     ph_min = 5.5
@@ -166,10 +162,7 @@ def check_and_adjust_sensors():
     tds_min = 500
     tds_max = 1500
     tds_active = True
-    humidity_min = 40
-    humidity_max = 70
-    humidity_active = True
-
+    
     # Update with database values if available
     if ph_limit:
         ph_min = ph_limit.min_value
@@ -180,11 +173,6 @@ def check_and_adjust_sensors():
         tds_min = tds_limit.min_value
         tds_max = tds_limit.max_value
         tds_active = tds_limit.is_active
-    
-    if humidity_limit:  
-        humidity_min = humidity_limit.min_value
-        humidity_max = humidity_limit.max_value
-        humidity_active = humidity_limit.is_active
     
     # Check pH levels and adjust if needed
     if ph_data and ph_active:
@@ -218,7 +206,28 @@ def check_and_adjust_sensors():
             pump2_forward()
             time.sleep(5)
             pump2_stop()
-        
+
+def check_humidity():
+    """Check humidity readings against set limits and activate fans if needed"""
+    # Get latest humidity reading
+    humidity_data = TemperatureHumidityData.query.order_by(TemperatureHumidityData.id.desc()).first()
+    
+    # Get humidity limits
+    humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
+    
+    # Default limits if none are set
+    humidity_min = 40
+    humidity_max = 70
+    humidity_active = True
+
+    buffer = 3
+    
+    # Update with database values if available
+    if humidity_limit:  
+        humidity_min = humidity_limit.min_value
+        humidity_max = humidity_limit.max_value
+        humidity_active = humidity_limit.is_active
+    
     # Check humidity levels and adjust if needed
     if humidity_data and humidity_active:
         humidity_value = humidity_data.humidity
@@ -226,17 +235,12 @@ def check_and_adjust_sensors():
         if humidity_value > humidity_max:
             # Humidity too high, activate fan
             print(f"Humidity {humidity_value} above maximum {humidity_max}, starting fan")
-            # Make sure relay is defined/imported  # Add proper import
-            relay_on(RELAY_IN1)
-            relay_on(RELAY_IN2)
-
+            relay.on()
         
-        elif humidity_value < humidity_min:
+        elif humidity_value < humidity_min+buffer:
             # Humidity too low, stop fan
             print(f"Humidity {humidity_value} below minimum {humidity_min}, stopping fan")
-            # Make sure relay is defined/imported  # Add proper import
-            relay_off(RELAY_IN1)
-            relay_off(RELAY_IN2)
+            relay.off()
             
 
 def pump1_forward():
@@ -526,6 +530,14 @@ def manual_check_and_adjust():
     try:
         check_and_adjust_sensors()
         return jsonify({"message": "Sensor check and adjustment completed successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/check_humidity", methods=["POST"])
+def manual_check_humidity():
+    try:
+        check_humidity()
+        return jsonify({"message": "Humidity check and adjustment completed successfully"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
@@ -1485,5 +1497,9 @@ if __name__ == "__main__":
     data_fetch_thread = threading.Thread(target=fetch_sensor_data)
     data_fetch_thread.daemon = True  # This makes sure the thread will exit when the main program does
     data_fetch_thread.start()
+
+    humidity_check_thread = threading.Thread(target=check_humidity_regularly)
+    humidity_check_thread.daemon = True
+    humidity_check_thread.start()
     
     app.run(host='0.0.0.0', port=5000)
