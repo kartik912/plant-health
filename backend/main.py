@@ -53,7 +53,7 @@ def fetch_sensor_data():
         time.sleep(7200) #10 mins = 600  #3hr = 10800  #7200 = 2hr
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 11   
+PUMP1_IN1 = 14   
 PUMP1_IN2 = 13  
 PUMP2_IN3 = 26  
 PUMP2_IN4 = 17  
@@ -72,8 +72,8 @@ FREQUENCY = 50  # Standard servo PWM frequency (50 Hz)
 
 # Pulse width values for different angles
 # These may need fine-tuning based on your specific servo
-ANGLE_0 = 125.0   # Typically 0.5ms pulse width for 0 degrees
-ANGLE_90 = 60.5  # Typically 1.5ms pulse width for 90 degrees
+ANGLE_0 = 140.0   # Typically 0.5ms pulse width for 0 degrees
+ANGLE_90 = 70.5  # Typically 1.5ms pulse width for 90 degrees
 
 def setup_servo():
     """Initialize the GPIO and PWM for the servo"""
@@ -136,6 +136,7 @@ def check_humidity_regularly():
     while True:
         try:
             # Only get temperature/humidity data and check it
+            requests.post("http://127.0.0.1:5000/get_temperature_humidity")
             requests.post("http://127.0.0.1:5000/check_humidity")
             
         except Exception as e:
@@ -500,10 +501,13 @@ def check_sensors():
         
         # Check TDS
         try:
-            tds_value = tdssensor.TDS
-            monitor.check_sensor_reading('tds', tds_value)
+            # ec_sensor = GroveEC(channel=2, window_size=50)
+            # tds_value = tdssensor.TDS
+            tds_data = TDSData.query.order_by(TDSData.id.desc()).first()
+            ec_value = tds_data.tds_value
+            monitor.check_sensor_reading('tds', ec_value)
         except Exception as e:
-            monitor.send_email_alert('TDS Sensor', f"Failed to read TDS: {str(e)}")
+            monitor.send_email_alert('EC Sensor', f"Failed to read EC: {str(e)}")
         
         # Check pH
         try:

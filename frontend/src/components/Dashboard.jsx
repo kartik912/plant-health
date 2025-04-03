@@ -21,11 +21,22 @@ const Dashboard = () => {
   const [currentMoisture, setCurrentMoisture] = useState({ value: 0, state: "Dry", time: "N/A" });
   const [currentTemperature, setCurrentTemperature] = useState({ value: 0, time: "N/A" });
   const [currentHumidity, setCurrentHumidity] = useState({ value: 0, time: "N/A" });
-  const [currentPH, setCurrentPH] = useState({ value: 0, time: "N/A" });
+  const [currentPH, setCurrentPH] = useState({ value: 0, state: "Neutral", time: "N/A" });
   const [currentTDS, setCurrentTDS] = useState({ value: 0, time: "N/A" });
 
   // Historical data for all sensors
   const [sensorData, setSensorData] = useState([]);
+  // Specific pH data with state information
+  const [phData, setPHData] = useState([]);
+  // Specific moisture data with state information
+  const [moistureData, setMoistureData] = useState([]);
+  // Specific TDS data - New separate state for TDS data
+  const [tdsData, setTdsData] = useState([]);
+  // Combined soil data for moisture and TDS
+  const [combinedSoilData, setCombinedSoilData] = useState([]);
+  
+  const maxPHDataPoints = 20; // Limit the number of points shown on pH graph
+  const maxMoistureDataPoints = 20; // Limit the number of points shown on moisture graph
 
   // Helper function to safely parse numeric values
   const safeParseFloat = (value) => {
@@ -63,105 +74,252 @@ const Dashboard = () => {
     return "Wet";
   };
 
+  // Helper function to determine pH state based on value (from PHSensor component)
+  const getPHState = (ph) => {
+    if (isNaN(ph)) return "Neutral"; // Handle NaN values
+    if (ph < 6.5) return "Acidic";
+    if (ph > 7.5) return "Alkaline";
+    return "Neutral";
+  };
+
+  // Separate TDS data fetching function (NEW - based on TDS component)
+  const fetchTDSData = async () => {
+    try {
+      const url = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${url}/get_tds_history`);
+      const historyData = await response.json();
+      
+      if (!historyData.tds_data || !Array.isArray(historyData.tds_data)) {
+        console.error("Invalid TDS data format:", historyData);
+        return [];
+      }
+      
+      const formattedData = historyData.tds_data.map(item => {
+        return {
+          time: item.date,
+          tds_value: safeParseFloat(item.tds_value)
+        };
+      });
+      
+      // Set TDS historical data
+      setTdsData(formattedData);
+      
+      // Set current TDS value from the latest entry
+      if (formattedData.length > 0) {
+        const latestEntry = formattedData[formattedData.length - 1];
+        setCurrentTDS({
+          value: latestEntry.tds_value,
+          time: latestEntry.time
+        });
+      }
+      
+      return formattedData;
+    } catch (error) {
+      console.error("Error fetching TDS data:", error);
+      return [];
+    }
+  };
+
+  // Separate moisture data fetching function
+  const fetchMoistureData = async () => {
+    try {
+      const url = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${url}/get_moisture_data`);
+      const data = await response.json();
+      
+      if (!data.moisture_data || !Array.isArray(data.moisture_data)) {
+        console.error("Invalid moisture data format:", data);
+        return [];
+      }
+      
+      const formattedData = data.moisture_data.map((item) => {
+        const moistureLevel = safeParseFloat(item.moisture_level);
+        return {
+          time: item.date,
+          value: moistureLevel,
+          state: item.state || getMoistureState(moistureLevel)
+        };
+      });
+      
+      // Set historical moisture data
+      const recentData = formattedData.slice(-maxMoistureDataPoints);
+      setMoistureData(recentData);
+      
+      // Set current moisture value from the latest entry
+      if (recentData.length > 0) {
+        const latestEntry = recentData[recentData.length - 1];
+        setCurrentMoisture({
+          value: latestEntry.value,
+          state: latestEntry.state,
+          time: latestEntry.time
+        });
+      }
+      
+      return formattedData;
+    } catch (error) {
+      console.error("Error fetching moisture data:", error);
+      return [];
+    }
+  };
+
+  // Separate pH data fetching function (from PHSensor component)
+  const fetchPHData = async () => {
+    try {
+      const url = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${url}/get_ph_history`);
+      const data = await response.json();
+      
+      const formattedData = data.ph_data.map((item) => {
+        const phValue = parseFloat(item.ph_value);
+        return {
+          time: item.timestamp,
+          ph_value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+          state: getPHState(isNaN(phValue) ? 0 : phValue)
+        };
+      });
+      
+      // Set historical pH data
+      const recentData = formattedData.slice(-maxPHDataPoints);
+      setPHData(recentData);
+      
+      // Set current pH value from the latest entry
+      if (recentData.length > 0) {
+        const latestEntry = recentData[recentData.length - 1];
+        setCurrentPH({
+          value: latestEntry.ph_value,
+          state: latestEntry.state,
+          time: latestEntry.time
+        });
+      }
+      
+      return formattedData;
+    } catch (error) {
+      console.error("Error fetching PH data:", error);
+      return [];
+    }
+  };
+
+  // Combine moisture and TDS data
+  const combineData = (moistureData, tdsData) => {
+    const timeMap = new Map();
+    
+    // Add moisture data to timeMap
+    moistureData.forEach(item => {
+      if (!timeMap.has(item.time)) {
+        timeMap.set(item.time, {
+          time: item.time,
+          moisture_value: item.value,
+          moisture_state: item.state
+        });
+      } else {
+        const existing = timeMap.get(item.time);
+        existing.moisture_value = item.value;
+        existing.moisture_state = item.state;
+      }
+    });
+    
+    // Add TDS data to timeMap
+    tdsData.forEach(item => {
+      if (!timeMap.has(item.time)) {
+        timeMap.set(item.time, {
+          time: item.time,
+          tds_value: item.tds_value
+        });
+      } else {
+        const existing = timeMap.get(item.time);
+        existing.tds_value = item.tds_value;
+      }
+    });
+    
+    // Convert map to array and sort by time
+    const combined = Array.from(timeMap.values()).sort((a, b) => {
+      return new Date(a.time) - new Date(b.time);
+    });
+    
+    return combined;
+  };
+
   // Fetch historical data
   useEffect(() => {
     const fetchHistoricalData = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        const [tempHumHistoryRes, moistureHistoryRes, phHistoryRes, tdsHistoryRes] = await Promise.all([
-          fetch(`${url}/get_temperature_humidity_history`),
-          fetch(`${url}/get_moisture_data`),
-          fetch(`${url}/get_ph_history`),
-          fetch(`${url}/get_tds_history`)
-        ]);
-
+        // Only fetch temperature and humidity history
+        const tempHumHistoryRes = await fetch(`${url}/get_temperature_humidity_history`);
         const tempHumHistory = await tempHumHistoryRes.json();
-        const moistureHistory = await moistureHistoryRes.json();
-        const phHistory = await phHistoryRes.json();
-        const tdsHistory = await tdsHistoryRes.json();
-
-        console.log("Moisture history data:", moistureHistory);
         
-        // Enhanced error logging
-        if (!moistureHistory.moisture_data || !Array.isArray(moistureHistory.moisture_data)) {
-          console.error("Invalid moisture data format:", moistureHistory);
-        }
+        // Fetch pH data using the dedicated function
+        const phFormattedData = await fetchPHData();
+        
+        // Fetch moisture data using the dedicated function
+        const moistureFormattedData = await fetchMoistureData();
+        
+        // Fetch TDS data using the dedicated function
+        const tdsFormattedData = await fetchTDSData();
 
-        // Merge all historical data with more robust error handling
+        // Merge temperature, humidity, and pH data with more robust error handling
         const mergedData = [];
         
-        const maxLength = Math.max(
-          tempHumHistory.temperature_humidity_data?.length || 0,
-          moistureHistory.moisture_data?.length || 0,
-          phHistory.ph_data?.length || 0,
-          tdsHistory.tds_data?.length || 0
-        );
-        
-        for (let i = 0; i < maxLength; i++) {
-          const tempHumItem = tempHumHistory.temperature_humidity_data?.[i];
-          const moistureItem = moistureHistory.moisture_data?.[i];
-          const phItem = phHistory.ph_data?.[i];
-          const tdsItem = tdsHistory.tds_data?.[i];
-          
-          if (tempHumItem) {
+        if (tempHumHistory.temperature_humidity_data && Array.isArray(tempHumHistory.temperature_humidity_data)) {
+          tempHumHistory.temperature_humidity_data.forEach(tempHumItem => {
+            let matchingPH = null;
+            // Find a matching pH entry by timestamp/date
+            if (phFormattedData && phFormattedData.length > 0) {
+              matchingPH = phFormattedData.find(phItem => 
+                phItem.time === tempHumItem.date || 
+                Math.abs(new Date(phItem.time) - new Date(tempHumItem.date)) < 60000 // within 1 minute
+              );
+            }
+            
             mergedData.push({
               time: tempHumItem.date,
               temperature: safeParseFloat(tempHumItem.temperature),
               humidity: safeParseFloat(tempHumItem.humidity),
-              ph: phItem ? safeParseFloat(phItem.ph_value) : null,
-              moisture: moistureItem ? safeParseFloat(moistureItem.moisture_level) : null,
-              tds: tdsItem ? safeParseFloat(tdsItem.tds_value) : null
+              ph_value: matchingPH ? matchingPH.ph_value : null
             });
-          }
+          });
         }
-
+        
+        // If we don't have matching timestamps, add pH data separately
+        if (phFormattedData && phFormattedData.length > 0 && !mergedData.some(item => item.ph_value !== null)) {
+          phFormattedData.forEach(phItem => {
+            if (!mergedData.some(item => item.time === phItem.time)) {
+              mergedData.push({
+                time: phItem.time,
+                temperature: null,
+                humidity: null,
+                ph_value: phItem.ph_value
+              });
+            }
+          });
+        }
+        
         setSensorData(mergedData);
 
-        // Update current sensor values with the latest historical data
-        const latestMoisture = getLatestValue(mergedData, 'moisture');
-      if (latestMoisture) {
-        setCurrentMoisture(prev => ({
-          value: latestMoisture.value,
-          state: getMoistureState(latestMoisture.value),
-          time: latestMoisture.time
-        }));
-      }
+        // Combine moisture and TDS data
+        const combined = combineData(moistureFormattedData, tdsFormattedData);
+        setCombinedSoilData(combined);
 
-      const latestTemperature = getLatestValue(mergedData, 'temperature');
-      if (latestTemperature) {
-        setCurrentTemperature(prev => ({
-          value: latestTemperature.value,
-          time: latestTemperature.time
-        }));
-      }
+        // Temperature and humidity are already updated from merged data
+        const latestTemperature = getLatestValue(mergedData, 'temperature');
+        if (latestTemperature) {
+          setCurrentTemperature(prev => ({
+            value: latestTemperature.value,
+            time: latestTemperature.time
+          }));
+        }
 
-      const latestHumidity = getLatestValue(mergedData, 'humidity');
-      if (latestHumidity) {
-        setCurrentHumidity(prev => ({
-          value: latestHumidity.value,
-          time: latestHumidity.time
-        }));
+        const latestHumidity = getLatestValue(mergedData, 'humidity');
+        if (latestHumidity) {
+          setCurrentHumidity(prev => ({
+            value: latestHumidity.value,
+            time: latestHumidity.time
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching historical data:", error);
       }
-
-      const latestPH = getLatestValue(mergedData, 'ph');
-      if (latestPH) {
-        setCurrentPH(prev => ({
-          value: latestPH.value,
-          time: latestPH.time
-        }));
-      }
-
-      const latestTDS = getLatestValue(mergedData, 'tds');
-      if (latestTDS) {
-        setCurrentTDS(prev => ({
-          value: latestTDS.value,
-          time: latestTDS.time
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching historical data:", error);
-    }
-  };
+    };
 
     fetchHistoricalData();
     const interval = setInterval(() => {
@@ -195,8 +353,49 @@ const Dashboard = () => {
     return null;
   };
 
-  // Debugging current moisture value
-  console.log("Current moisture state in render:", currentMoisture);
+  // Combined soil parameters tooltip
+  const CombinedSoilTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="rounded-lg bg-slate-800 border border-slate-700 shadow-lg p-4">
+          <p className="text-slate-300 text-sm mb-2">{`Time: ${label}`}</p>
+          {payload.map((entry, index) => {
+            // Special handling for moisture value to show state
+            if (entry.dataKey === "moisture_value") {
+              const moistureValue = entry.value;
+              const moistureState = getMoistureState(moistureValue);
+              let stateColor;
+              switch (moistureState.toLowerCase()) {
+                case 'dry': stateColor = '#FBBF24'; break; // yellow-400
+                case 'moist': stateColor = '#4ADE80'; break; // green-400
+                case 'wet': stateColor = '#60A5FA'; break; // blue-400
+                default: stateColor = '#9CA3AF'; break; // gray-400
+              }
+              
+              return (
+                <div key={`item-${index}`} className="text-sm">
+                  <p style={{ color: entry.color }} className="font-medium">
+                    {`${entry.name}: ${moistureValue?.toFixed(2) || 'N/A'}`}
+                  </p>
+                  <p style={{ color: stateColor }} className="font-medium mt-1 capitalize">
+                    Status: {moistureState}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Standard display for other values
+            return (
+              <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm font-medium">
+                {`${entry.name}: ${entry.value?.toFixed(2) || 'N/A'} ${entry.dataKey === "tds_value" ? "ms/cm" : ""}`}
+              </p>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 p-2 sm:p-6">
@@ -209,7 +408,11 @@ const Dashboard = () => {
         {/* First Row: PH, Humidity, and Temperature Gauges */}
         <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-8">
           <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
-            <Gauge value={currentPH?.value} time={currentPH?.time} />
+            <Gauge 
+              value={currentPH?.value} 
+              time={currentPH?.time} 
+              state={currentPH?.state}
+            />
           </div>
           <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <HumidityGauge value={currentHumidity?.value} time={currentHumidity?.time} />
@@ -236,6 +439,15 @@ const Dashboard = () => {
                   stroke="#94a3b8" 
                   tick={{ fill: '#94a3b8' }}
                   axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+                  yAxisId="temp"
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  tick={{ fill: '#94a3b8' }}
+                  axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+                  orientation="right"
+                  yAxisId="ph"
+                  domain={[0, 14]}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend 
@@ -253,6 +465,7 @@ const Dashboard = () => {
                   dot={false}
                   activeDot={{ r: 6, stroke: '#36A2EB', strokeWidth: 2 }}
                   name="Humidity" 
+                  yAxisId="temp"
                 />
                 <Line 
                   type="monotone" 
@@ -262,15 +475,17 @@ const Dashboard = () => {
                   dot={false}
                   activeDot={{ r: 6, stroke: '#FF9F40', strokeWidth: 2 }}
                   name="Temperature" 
+                  yAxisId="temp"
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="ph" 
-                  stroke="#FF6384" 
+                  dataKey="ph_value" 
+                  stroke="#4ade80" 
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 6, stroke: '#FF6384', strokeWidth: 2 }}
+                  activeDot={{ r: 6, stroke: '#4ade80', strokeWidth: 2 }}
                   name="pH Level" 
+                  yAxisId="ph"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -296,7 +511,7 @@ const Dashboard = () => {
           <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">Soil Parameters</h3>
           <div style={chartStyle} className="p-1 sm:p-4">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={sensorData}>
+              <LineChart data={combinedSoilData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
                 <XAxis 
                   dataKey="time" 
@@ -308,8 +523,17 @@ const Dashboard = () => {
                   stroke="#94a3b8" 
                   tick={{ fill: '#94a3b8' }}
                   axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+                  domain={[0, 1000]} 
+                  yAxisId="moisture"
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <YAxis 
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8' }}
+                  axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+                  orientation="right"
+                  yAxisId="tds"
+                />
+                <Tooltip content={<CombinedSoilTooltip />} />
                 <Legend 
                   wrapperStyle={{ 
                     paddingTop: '15px',
@@ -318,27 +542,29 @@ const Dashboard = () => {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="moisture" 
+                  dataKey="moisture_value"
                   stroke="#9966FF" 
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 6, stroke: '#9966FF', strokeWidth: 2 }}
-                  name="Soil Moisture" 
+                  name="Soil Moisture"
+                  yAxisId="moisture"
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="tds" 
-                  stroke="#4BC0C0" 
+                  dataKey="tds_value" 
+                  stroke="#fb7185" 
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 6, stroke: '#4BC0C0', strokeWidth: 2 }}
-                  name="EC" 
+                  activeDot={{ r: 6, stroke: '#fb7185', strokeWidth: 2 }}
+                  name="EC (ms/cm)"
+                  yAxisId="tds"
                 />
-                
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
+        
         <div className="mt-4 sm:mt-8">
           <LocationMap />
         </div>

@@ -14,7 +14,7 @@ class SensorMonitor:
         self.thresholds = {
             'temperature': {'min': -10, 'max': 100},  # °C
             'humidity': {'min': 0, 'max': 100},  # %
-            'tds': {'min': 0, 'max': 2000},  # ppm
+            'tds': {'min': 0, 'max': 20},  # ppm
             'ph': {'min': 0, 'max': 20}  # pH scale
         }
         
