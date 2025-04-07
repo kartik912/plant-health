@@ -8,7 +8,7 @@ const TDSGauge = ({ value, time }) => {
   return (
     <div className="w-full h-full p-6 rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 flex flex-col shadow-lg">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-white">Water TDH</h2>
+        <h2 className="text-xl font-bold text-white">Water EC</h2>
         <div className="px-3 py-1 bg-slate-700/50 rounded-full">
           <span className="text-sm text-emerald-400 font-medium">{time}</span>
         </div>

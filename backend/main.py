@@ -73,7 +73,7 @@ FREQUENCY = 50  # Standard servo PWM frequency (50 Hz)
 # Pulse width values for different angles
 # These may need fine-tuning based on your specific servo
 ANGLE_0 = 140.0   # Typically 0.5ms pulse width for 0 degrees
-ANGLE_90 = 70.5  # Typically 1.5ms pulse width for 90 degrees
+ANGLE_90 = 50.5  # Typically 1.5ms pulse width for 90 degrees
 
 def setup_servo():
     """Initialize the GPIO and PWM for the servo"""
@@ -136,13 +136,13 @@ def check_humidity_regularly():
     while True:
         try:
             # Only get temperature/humidity data and check it
-            requests.post("http://127.0.0.1:5000/get_temperature_humidity")
+            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
             requests.post("http://127.0.0.1:5000/check_humidity")
             
         except Exception as e:
             print(f"Error checking humidity: {e}")
         
-        time.sleep(600) #10min
+        time.sleep(5) #10min
 
 def check_and_adjust_sensors():
     """Check pH and TDS readings against set limits and activate pumps if needed"""
@@ -160,8 +160,8 @@ def check_and_adjust_sensors():
     ph_min = 5.5
     ph_max = 7.5
     ph_active = True
-    tds_min = 500
-    tds_max = 1500
+    tds_min = 0
+    tds_max = 3
     tds_active = True
     
     # Update with database values if available
@@ -201,46 +201,46 @@ def check_and_adjust_sensors():
             # TDS too low, activate pump 1 and 2 (nutrient pumps)
             print(f"TDS {tds_value} below minimum {tds_min}, activating pumps 1 and 2")
             pump1_forward()
-            time.sleep(5)
+            time.sleep(8)
             pump1_stop()
             time.sleep(10)
             pump2_forward()
-            time.sleep(5)
+            time.sleep(8)
             pump2_stop()
 
-def check_humidity():
-    """Check humidity readings against set limits and activate fans if needed"""
-    # Get latest humidity reading
-    humidity_data = TemperatureHumidityData.query.order_by(TemperatureHumidityData.id.desc()).first()
+def check_temperature():
+    """Check temperature readings against set limits and activate fans if needed"""
+    # Get latest temperature reading
+    temperature_data = TemperatureHumidityData.query.order_by(TemperatureHumidityData.id.desc()).first()
     
-    # Get humidity limits
-    humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
+    # Get temperature limits
+    temperature_limit = SensorLimits.query.filter_by(sensor_type="temperature").first()
     
     # Default limits if none are set
-    humidity_min = 40
-    humidity_max = 70
-    humidity_active = True
+    temperature_min = 18
+    temperature_max = 28
+    temperature_active = True
 
-    buffer = 3
+    buffer = 2
     
     # Update with database values if available
-    if humidity_limit:  
-        humidity_min = humidity_limit.min_value
-        humidity_max = humidity_limit.max_value
-        humidity_active = humidity_limit.is_active
+    if temperature_limit:  
+        temperature_min = temperature_limit.min_value
+        temperature_max = temperature_limit.max_value
+        temperature_active = temperature_limit.is_active
     
-    # Check humidity levels and adjust if needed
-    if humidity_data and humidity_active:
-        humidity_value = humidity_data.humidity
+    # Check temperature levels and adjust if needed
+    if temperature_data and temperature_active:
+        temperature_value = temperature_data.temperature
         
-        if humidity_value > humidity_max:
-            # Humidity too high, activate fan
-            print(f"Humidity {humidity_value} above maximum {humidity_max}, starting fan")
+        if temperature_value > temperature_max:
+            # Temperature too high, activate fan
+            print(f"Temperature {temperature_value} above maximum {temperature_max}, starting fan")
             relay.on()
         
-        elif humidity_value < humidity_min+buffer:
-            # Humidity too low, stop fan
-            print(f"Humidity {humidity_value} below minimum {humidity_min}, stopping fan")
+        elif temperature_value < temperature_min+buffer:
+            # Temperature too low, stop fan
+            print(f"Temperature {temperature_value} below minimum {temperature_min}, stopping fan")
             relay.off()
             
 
@@ -540,8 +540,8 @@ def manual_check_and_adjust():
 @app.route("/check_humidity", methods=["POST"])
 def manual_check_humidity():
     try:
-        check_humidity()
-        return jsonify({"message": "Humidity check and adjustment completed successfully"}), 200
+        check_temperature()
+        return jsonify({"message": "temperature check and adjustment completed successfully"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
@@ -641,9 +641,9 @@ def get_sensor_limits():
         if "ph" not in limits_dict:
             limits_dict["ph"] = {"min": 5.5, "max": 7.5, "active": True}
         if "tds" not in limits_dict:
-            limits_dict["tds"] = {"min": 500, "max": 1500, "active": True}
-        if "humidity" not in limits_dict:
-            limits_dict["humidity"] = {"min": 40, "max": 70, "active": True}
+            limits_dict["tds"] = {"min": 0, "max": 3, "active": True}
+        if "temperature" not in limits_dict:
+            limits_dict["temperature"] = {"min": 18, "max": 28, "active": True}
             
         return jsonify(limits_dict), 200
     except Exception as e:
@@ -675,26 +675,27 @@ def update_sensor_limits():
                     is_active=ph_data["active"]
                 )
                 db.session.add(ph_limit)
-        #adding humidity data
-        if "humidity" in data:
-            humidity_data = data["humidity"]
-            humidity_limit = SensorLimits.query.filter_by(sensor_type="humidity").first()
+        
+        # Adding temperature data
+        if "temperature" in data:
+            temperature_data = data["temperature"]
+            temperature_limit = SensorLimits.query.filter_by(sensor_type="temperature").first()
             
-            if humidity_limit:
+            if temperature_limit:
                 # Update existing record
-                humidity_limit.min_value = humidity_data["min"]
-                humidity_limit.max_value = humidity_data["max"]
-                humidity_limit.is_active = humidity_data["active"]
-                humidity_limit.updated_at = datetime.now()
+                temperature_limit.min_value = temperature_data["min"]
+                temperature_limit.max_value = temperature_data["max"]
+                temperature_limit.is_active = temperature_data["active"]
+                temperature_limit.updated_at = datetime.now()
             else:
                 # Create new record
-                humidity_limit = SensorLimits(
-                    sensor_type="humidity",
-                    min_value=humidity_data["min"],
-                    max_value=humidity_data["max"],
-                    is_active=humidity_data["active"]
+                temperature_limit = SensorLimits(
+                    sensor_type="temperature",
+                    min_value=temperature_data["min"],
+                    max_value=temperature_data["max"],
+                    is_active=temperature_data["active"]
                 )
-                db.session.add(humidity_limit)
+                db.session.add(temperature_limit)
         
         # Update TDS limits
         if "tds" in data:

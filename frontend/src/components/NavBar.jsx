@@ -36,7 +36,6 @@ const NavBar = () => {
     { to: "/dashboard", text: "Dashboard" },
     { to: "/camera", text: "Camera" },
     { to: "/temp", text: "Temperature" },
-    { to: "/moist", text: "Moisture" },
     { to: "/tds", text: "TDS" },
     { to: "/ph", text: "PH Level" },
     { to: "/history", text: "History" },

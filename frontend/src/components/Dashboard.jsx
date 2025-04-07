@@ -32,8 +32,6 @@ const Dashboard = () => {
   const [moistureData, setMoistureData] = useState([]);
   // Specific TDS data - New separate state for TDS data
   const [tdsData, setTdsData] = useState([]);
-  // Combined soil data for moisture and TDS
-  const [combinedSoilData, setCombinedSoilData] = useState([]);
   
   const maxPHDataPoints = 20; // Limit the number of points shown on pH graph
   const maxMoistureDataPoints = 20; // Limit the number of points shown on moisture graph
@@ -173,7 +171,7 @@ const Dashboard = () => {
         const phValue = parseFloat(item.ph_value);
         return {
           time: item.timestamp,
-          ph_value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+          value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
           state: getPHState(isNaN(phValue) ? 0 : phValue)
         };
       });
@@ -186,7 +184,7 @@ const Dashboard = () => {
       if (recentData.length > 0) {
         const latestEntry = recentData[recentData.length - 1];
         setCurrentPH({
-          value: latestEntry.ph_value,
+          value: latestEntry.value,
           state: latestEntry.state,
           time: latestEntry.time
         });
@@ -197,46 +195,6 @@ const Dashboard = () => {
       console.error("Error fetching PH data:", error);
       return [];
     }
-  };
-
-  // Combine moisture and TDS data
-  const combineData = (moistureData, tdsData) => {
-    const timeMap = new Map();
-    
-    // Add moisture data to timeMap
-    moistureData.forEach(item => {
-      if (!timeMap.has(item.time)) {
-        timeMap.set(item.time, {
-          time: item.time,
-          moisture_value: item.value,
-          moisture_state: item.state
-        });
-      } else {
-        const existing = timeMap.get(item.time);
-        existing.moisture_value = item.value;
-        existing.moisture_state = item.state;
-      }
-    });
-    
-    // Add TDS data to timeMap
-    tdsData.forEach(item => {
-      if (!timeMap.has(item.time)) {
-        timeMap.set(item.time, {
-          time: item.time,
-          tds_value: item.tds_value
-        });
-      } else {
-        const existing = timeMap.get(item.time);
-        existing.tds_value = item.tds_value;
-      }
-    });
-    
-    // Convert map to array and sort by time
-    const combined = Array.from(timeMap.values()).sort((a, b) => {
-      return new Date(a.time) - new Date(b.time);
-    });
-    
-    return combined;
   };
 
   // Fetch historical data
@@ -257,50 +215,23 @@ const Dashboard = () => {
         // Fetch TDS data using the dedicated function
         const tdsFormattedData = await fetchTDSData();
 
-        // Merge temperature, humidity, and pH data with more robust error handling
+        // Merge temperature and humidity data with more robust error handling
         const mergedData = [];
         
         if (tempHumHistory.temperature_humidity_data && Array.isArray(tempHumHistory.temperature_humidity_data)) {
           tempHumHistory.temperature_humidity_data.forEach(tempHumItem => {
-            let matchingPH = null;
-            // Find a matching pH entry by timestamp/date
-            if (phFormattedData && phFormattedData.length > 0) {
-              matchingPH = phFormattedData.find(phItem => 
-                phItem.time === tempHumItem.date || 
-                Math.abs(new Date(phItem.time) - new Date(tempHumItem.date)) < 60000 // within 1 minute
-              );
-            }
-            
             mergedData.push({
               time: tempHumItem.date,
               temperature: safeParseFloat(tempHumItem.temperature),
-              humidity: safeParseFloat(tempHumItem.humidity),
-              ph_value: matchingPH ? matchingPH.ph_value : null
+              humidity: safeParseFloat(tempHumItem.humidity)
             });
           });
         }
-        
-        // If we don't have matching timestamps, add pH data separately
-        if (phFormattedData && phFormattedData.length > 0 && !mergedData.some(item => item.ph_value !== null)) {
-          phFormattedData.forEach(phItem => {
-            if (!mergedData.some(item => item.time === phItem.time)) {
-              mergedData.push({
-                time: phItem.time,
-                temperature: null,
-                humidity: null,
-                ph_value: phItem.ph_value
-              });
-            }
-          });
-        }
-        
+
         setSensorData(mergedData);
 
-        // Combine moisture and TDS data
-        const combined = combineData(moistureFormattedData, tdsFormattedData);
-        setCombinedSoilData(combined);
-
         // Temperature and humidity are already updated from merged data
+        // pH, TDS and moisture are handled in their respective fetch functions
         const latestTemperature = getLatestValue(mergedData, 'temperature');
         if (latestTemperature) {
           setCurrentTemperature(prev => ({
@@ -353,42 +284,83 @@ const Dashboard = () => {
     return null;
   };
 
-  // Combined soil parameters tooltip
-  const CombinedSoilTooltip = ({ active, payload, label }) => {
+  // Moisture-specific tooltip
+  const MoistureTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg bg-slate-800 border border-slate-700 shadow-lg p-4">
           <p className="text-slate-300 text-sm mb-2">{`Time: ${label}`}</p>
           {payload.map((entry, index) => {
-            // Special handling for moisture value to show state
-            if (entry.dataKey === "moisture_value") {
-              const moistureValue = entry.value;
-              const moistureState = getMoistureState(moistureValue);
-              let stateColor;
-              switch (moistureState.toLowerCase()) {
-                case 'dry': stateColor = '#FBBF24'; break; // yellow-400
-                case 'moist': stateColor = '#4ADE80'; break; // green-400
-                case 'wet': stateColor = '#60A5FA'; break; // blue-400
-                default: stateColor = '#9CA3AF'; break; // gray-400
-              }
-              
-              return (
-                <div key={`item-${index}`} className="text-sm">
-                  <p style={{ color: entry.color }} className="font-medium">
-                    {`${entry.name}: ${moistureValue?.toFixed(2) || 'N/A'}`}
-                  </p>
-                  <p style={{ color: stateColor }} className="font-medium mt-1 capitalize">
-                    Status: {moistureState}
-                  </p>
-                </div>
-              );
+            const moistureValue = entry.value;
+            const moistureState = getMoistureState(moistureValue);
+            let stateColor;
+            switch (moistureState.toLowerCase()) {
+              case 'dry': stateColor = '#FBBF24'; break; // yellow-400
+              case 'moist': stateColor = '#4ADE80'; break; // green-400
+              case 'wet': stateColor = '#60A5FA'; break; // blue-400
+              default: stateColor = '#9CA3AF'; break; // gray-400
             }
             
-            // Standard display for other values
             return (
-              <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm font-medium">
-                {`${entry.name}: ${entry.value?.toFixed(2) || 'N/A'} ${entry.dataKey === "tds_value" ? "ms/cm" : ""}`}
-              </p>
+              <div key={`item-${index}`} className="text-sm">
+                <p style={{ color: entry.color }} className="font-medium">
+                  {`${entry.name}: ${moistureValue?.toFixed(2) || 'N/A'}`}
+                </p>
+                <p style={{ color: stateColor }} className="font-medium mt-1 capitalize">
+                  Status: {moistureState}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // TDS-specific tooltip (NEW)
+  const TDSTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="rounded-lg bg-slate-800 border border-slate-700 shadow-lg p-4">
+          <p className="text-slate-300 text-sm mb-2">{`Time: ${label}`}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm font-medium">
+              {`${entry.name}: ${entry.value?.toFixed(2) || 'N/A'} ms/cm`}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // pH-specific tooltip
+  const PHTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="rounded-lg bg-slate-800 border border-slate-700 shadow-lg p-4">
+          <p className="text-slate-300 text-sm mb-2">{`Time: ${label}`}</p>
+          {payload.map((entry, index) => {
+            const phValue = entry.value;
+            const phState = getPHState(phValue);
+            let stateColor;
+            switch (phState.toLowerCase()) {
+              case 'acidic': stateColor = '#FBBF24'; break; // yellow-400
+              case 'neutral': stateColor = '#4ADE80'; break; // green-400
+              case 'alkaline': stateColor = '#60A5FA'; break; // blue-400
+              default: stateColor = '#9CA3AF'; break; // gray-400
+            }
+            
+            return (
+              <div key={`item-${index}`} className="text-sm">
+                <p style={{ color: entry.color }} className="font-medium">
+                  {`${entry.name}: ${phValue?.toFixed(1) || 'N/A'}`}
+                </p>
+                <p style={{ color: stateColor }} className="font-medium mt-1 capitalize">
+                  Status: {phState}
+                </p>
+              </div>
             );
           })}
         </div>
@@ -422,7 +394,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Combined Graph for PH, Humidity, and Temperature */}
         <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-2 sm:p-6 mb-4 sm:mb-8 shadow-lg border border-slate-700/30 backdrop-blur-sm">
           <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">Environmental Parameters</h3>
           <div style={chartStyle} className="p-1 sm:p-4">
@@ -493,25 +464,21 @@ const Dashboard = () => {
         </div>
 
         {/* Second Row: TDS and Soil Moisture Gauges */}
-        <div className="w-full grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-8">
+        <div className="w-full grid grid-cols-1 gap-2 sm:gap-4 mb-4 sm:mb-8">
           <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
             <TDSGauge value={currentTDS?.value} time={currentTDS?.time} />
           </div>
-          <div className="w-full h-full min-h-[120px] sm:min-h-[200px] transform hover:scale-[1.02] transition-all duration-300">
-            <MoistureGauge 
-              value={currentMoisture?.value} 
-              state={currentMoisture?.state} 
-              time={currentMoisture?.time}
-            />
-          </div>
+          
         </div>
 
-        {/* Combined Graph for TDS and Soil Moisture */}
-        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-2 sm:p-6 shadow-lg border border-slate-700/30 backdrop-blur-sm">
-          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">Soil Parameters</h3>
+        
+        
+        {/* NEW: Separate TDS Graph following TDS.js pattern */}
+        <div className="w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-xl p-2 sm:p-6 mb-4 sm:mb-8 shadow-lg border border-slate-700/30 backdrop-blur-sm">
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-4 ml-2">EC Measurements</h3>
           <div style={chartStyle} className="p-1 sm:p-4">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={combinedSoilData}>
+              <LineChart data={tdsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
                 <XAxis 
                   dataKey="time" 
@@ -520,20 +487,11 @@ const Dashboard = () => {
                   axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
                 />
                 <YAxis 
-                  stroke="#94a3b8" 
-                  tick={{ fill: '#94a3b8' }}
-                  axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-                  domain={[0, 1000]} 
-                  yAxisId="moisture"
-                />
-                <YAxis 
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8' }}
                   axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-                  orientation="right"
-                  yAxisId="tds"
                 />
-                <Tooltip content={<CombinedSoilTooltip />} />
+                <Tooltip content={<TDSTooltip />} />
                 <Legend 
                   wrapperStyle={{ 
                     paddingTop: '15px',
@@ -542,23 +500,12 @@ const Dashboard = () => {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="moisture_value"
-                  stroke="#9966FF" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6, stroke: '#9966FF', strokeWidth: 2 }}
-                  name="Soil Moisture"
-                  yAxisId="moisture"
-                />
-                <Line 
-                  type="monotone" 
                   dataKey="tds_value" 
                   stroke="#fb7185" 
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 6, stroke: '#fb7185', strokeWidth: 2 }}
-                  name="EC (ms/cm)"
-                  yAxisId="tds"
+                  name="EC (ms/cm)" 
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -15,7 +15,7 @@ const Pump = (props) => {
   // Store original ranges for when sensors are turned back on
   const [phOriginalRange, setPhOriginalRange] = useState({ min: 5.5, max: 7.5 });
   const [tdsOriginalRange, setTdsOriginalRange] = useState({ min: 1, max: 3 });
-  const [humidityOriginalRange, setHumidityOriginalRange] = useState({ min: 40, max: 70 });
+  const [temperatureOriginalRange, setTemperatureOriginalRange] = useState({ min: 18, max: 24 });
   
   // Added states for sensor limits
   const [phLimits, setPhLimits] = useState({
@@ -30,9 +30,9 @@ const Pump = (props) => {
     active: true
   });
 
-  const [humidityLimits, setHumidityLimits] = useState({
-    min: 40,
-    max: 60,
+  const [temperatureLimits, setTemperatureLimits] = useState({
+    min: 18,
+    max: 24,
     active: true
   });
 
@@ -133,10 +133,10 @@ const Pump = (props) => {
             setPhOriginalRange({ min: data.ph.min, max: data.ph.max });
           }
         }
-        if (data.humidity) {
-          setHumidityLimits(data.humidity);
-          if (data.humidity.active) {
-            setHumidityOriginalRange({ min: data.humidity.min, max: data.humidity.max });
+        if (data.temperature) {
+          setTemperatureLimits(data.temperature);
+          if (data.temperature.active) {
+            setTemperatureOriginalRange({ min: data.temperature.min, max: data.temperature.max });
           }
         }
         if (data.tds) {
@@ -169,8 +169,8 @@ const Pump = (props) => {
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }
-      if (humidityLimits.active && (humidityLimits.max - humidityLimits.min < 10)) {
-        setSaveStatus("Humidity range needs to be at least 10");
+      if (temperatureLimits.active && (temperatureLimits.max - temperatureLimits.min < 3)) {
+        setSaveStatus("Temperature range needs to be at least 3°C");
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }
@@ -184,7 +184,7 @@ const Pump = (props) => {
         body: JSON.stringify({ 
           ph: phLimits,
           tds: tdsLimits,
-          humidity: humidityLimits
+          temperature: temperatureLimits
         }),
       });
       
@@ -268,24 +268,24 @@ const Pump = (props) => {
           [field]: parseFloat(value)
         });
       }
-    } else if (sensor === "humidity") {
+    } else if (sensor === "temperature") {
       if (field === "active") {
         if (value) {
           // Turning ON - restore original range
-          setHumidityLimits({
-            ...humidityLimits,
+          setTemperatureLimits({
+            ...temperatureLimits,
             active: true,
-            min: humidityOriginalRange.min,
-            max: humidityOriginalRange.max
+            min: temperatureOriginalRange.min,
+            max: temperatureOriginalRange.max
           });
         } else {
           // Turning OFF - save current range and set full range
-          setHumidityOriginalRange({ min: humidityLimits.min, max: humidityLimits.max });
-          setHumidityLimits({
-            ...humidityLimits,
+          setTemperatureOriginalRange({ min: temperatureLimits.min, max: temperatureLimits.max });
+          setTemperatureLimits({
+            ...temperatureLimits,
             active: false,
-            min: 0,
-            max: 100
+            min: 10,
+            max: 40
           });
           
           // Auto-save when turning off
@@ -295,8 +295,8 @@ const Pump = (props) => {
         }
       } else {
         // Normal field update
-        setHumidityLimits({
-          ...humidityLimits,
+        setTemperatureLimits({
+          ...temperatureLimits,
           [field]: parseFloat(value)
         });
       }
@@ -363,11 +363,11 @@ const Pump = (props) => {
               </div>
               
               <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-3 ${humidityLimits.active ? "bg-orange-400" : "bg-slate-400"}`}></div>
+                <div className={`w-3 h-3 rounded-full mr-3 ${temperatureLimits.active ? "bg-red-400" : "bg-slate-400"}`}></div>
                 <div>
-                  <p className="text-slate-300 text-sm font-medium">Humidity Monitoring</p>
+                  <p className="text-slate-300 text-sm font-medium">Temperature Monitoring</p>
                   <p className="text-sm font-semibold text-white">
-                    {humidityLimits.active ? `${humidityLimits.min} - ${humidityLimits.max}%` : "Disabled"}
+                    {temperatureLimits.active ? `${temperatureLimits.min} - ${temperatureLimits.max}°C` : "Disabled"}
                   </p>
                 </div>
               </div>
@@ -391,9 +391,9 @@ const Pump = (props) => {
                   Sensor Limits
                 </h3>
                 <div className="flex items-center bg-slate-800/70 px-3 py-1 rounded-full border border-slate-700/50">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active || tdsLimits.active || humidityLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${phLimits.active || tdsLimits.active || temperatureLimits.active ? "bg-blue-400" : "bg-slate-400"}`}></div>
                   <span className="text-xs font-medium text-slate-300">
-                    {phLimits.active || tdsLimits.active || humidityLimits.active ? "Monitoring Active" : "Monitoring Off"}
+                    {phLimits.active || tdsLimits.active || temperatureLimits.active ? "Monitoring Active" : "Monitoring Off"}
                   </span>
                 </div>
               </div>
@@ -536,13 +536,13 @@ const Pump = (props) => {
                 )}
               </div>
               
-              {/* Humidity Sensor Limits */}
-              <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-orange-500/20 transition-colors duration-300">
+              {/* Temperature Sensor Limits */}
+              <div className="mb-6 bg-slate-800/40 rounded-lg p-5 border border-slate-700/30 hover:border-red-500/20 transition-colors duration-300">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${humidityLimits.active ? "bg-orange-400" : "bg-slate-400"}`}></div>
-                    <span className={`text-sm font-medium ${humidityLimits.active ? "text-orange-400" : "text-slate-500"}`}>
-                      Humidity Sensor
+                    <div className={`w-2 h-2 rounded-full mr-2 ${temperatureLimits.active ? "bg-red-400" : "bg-slate-400"}`}></div>
+                    <span className={`text-sm font-medium ${temperatureLimits.active ? "text-red-400" : "text-slate-500"}`}>
+                      Temperature Sensor
                     </span>
                   </div>
                   <label className="flex items-center cursor-pointer">
@@ -550,55 +550,55 @@ const Pump = (props) => {
                       <input
                         type="checkbox"
                         className="sr-only"
-                        checked={humidityLimits.active}
-                        onChange={(e) => handleInputChange("humidity", "active", e.target.checked)}
+                        checked={temperatureLimits.active}
+                        onChange={(e) => handleInputChange("temperature", "active", e.target.checked)}
                       />
-                      <div className={`block w-12 h-6 rounded-full ${humidityLimits.active ? 'bg-orange-500/50' : 'bg-slate-600/30'}`}></div>
-                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${humidityLimits.active ? 'transform translate-x-6' : ''}`}></div>
+                      <div className={`block w-12 h-6 rounded-full ${temperatureLimits.active ? 'bg-red-500/50' : 'bg-slate-600/30'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${temperatureLimits.active ? 'transform translate-x-6' : ''}`}></div>
                     </div>
-                    <span className="ml-2 text-xs font-medium text-slate-300">{humidityLimits.active ? 'ON' : 'OFF'}</span>
+                    <span className="ml-2 text-xs font-medium text-slate-300">{temperatureLimits.active ? 'ON' : 'OFF'}</span>
                   </label>
                 </div>
                 
-                {humidityLimits.active && (
+                {temperatureLimits.active && (
                   <>
                     <div className="grid grid-cols-2 gap-6 mb-4">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Min Humidity (%)</label>
+                        <label className="block text-xs text-slate-400 mb-1">Min Temperature (°C)</label>
                         <input 
                           type="number" 
-                          value={humidityLimits.min}
-                          onChange={(e) => handleInputChange("humidity", "min", e.target.value)}
-                          min="0" 
-                          max="100"
-                          step="1"
-                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-orange-300 text-sm focus:border-orange-500/50 focus:outline-none"
+                          value={temperatureLimits.min}
+                          onChange={(e) => handleInputChange("temperature", "min", e.target.value)}
+                          min="10" 
+                          max="40"
+                          step="0.5"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-red-300 text-sm focus:border-red-500/50 focus:outline-none"
                         />
-                        <p className="mt-1 text-xs text-slate-500">When humidity drops below this value, humidifier will activate</p>
+                        <p className="mt-1 text-xs text-slate-500">When temperature drops below this value, heater will activate</p>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Max Humidity (%)</label>
+                        <label className="block text-xs text-slate-400 mb-1">Max Temperature (°C)</label>
                         <input 
                           type="number" 
-                          value={humidityLimits.max}
-                          onChange={(e) => handleInputChange("humidity", "max", e.target.value)}
-                          min="0" 
-                          max="100"
-                          step="1"
-                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-orange-300 text-sm focus:border-orange-500/50 focus:outline-none"
+                          value={temperatureLimits.max}
+                          onChange={(e) => handleInputChange("temperature", "max", e.target.value)}
+                          min="10" 
+                          max="40"
+                          step="0.5"
+                          className="w-full py-2 px-3 rounded bg-slate-700/50 border border-slate-600/50 text-red-300 text-sm focus:border-red-500/50 focus:outline-none"
                         />
-                        <p className="mt-1 text-xs text-slate-500">When humidity rises above this value, dehumidifier will activate</p>
+                        <p className="mt-1 text-xs text-slate-500">When temperature rises above this value, cooling will activate</p>
                       </div>
                     </div>
                     
-                    {/* Humidity Range Visualization */}
+                    {/* Temperature Range Visualization */}
                     <div className="mt-4">
-                      <div className="h-2 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 rounded-full"></div>
+                      <div className="h-2 bg-gradient-to-r from-blue-500 via-green-500 to-red-500 rounded-full"></div>
                       <div className="flex justify-between mt-1">
-                        <span className="text-xs text-slate-400">0%</span>
-                        <span className="text-xs text-orange-400">{humidityLimits.min}%</span>
-                        <span className="text-xs text-orange-400">{humidityLimits.max}%</span>
-                        <span className="text-xs text-slate-400">100%</span>
+                        <span className="text-xs text-slate-400">10°C</span>
+                        <span className="text-xs text-red-400">{temperatureLimits.min}°C</span>
+                        <span className="text-xs text-red-400">{temperatureLimits.max}°C</span>
+                        <span className="text-xs text-slate-400">40°C</span>
                       </div>
                     </div>
                   </>
@@ -625,7 +625,7 @@ const Pump = (props) => {
                 <div className="flex items-start">
                   <div className="text-blue-400 mr-3 text-lg">ℹ️</div>
                   <p className="text-xs text-slate-400">
-                    Sensor monitoring automatically prevents pumps from activating when pH, EC, or humidity levels are outside the specified ranges.
+                    Sensor monitoring automatically prevents pumps from activating when pH, EC, or temperature levels are outside the specified ranges.
                   </p>
                 </div>
               </div>
