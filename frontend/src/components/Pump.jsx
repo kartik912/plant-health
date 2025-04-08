@@ -164,7 +164,7 @@ const Pump = (props) => {
       }
       
       // Check if TDS range is at least 1 if active
-      if (tdsLimits.active && (tdsLimits.max - tdsLimits.min < 1)) {
+      if (tdsLimits.active && (tdsLimits.max - tdsLimits.min < 0.5)) {
         setSaveStatus("TDS range needs to be at least 1");
         setTimeout(() => setSaveStatus(""), 3000);
         return;

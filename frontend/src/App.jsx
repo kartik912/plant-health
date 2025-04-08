@@ -9,6 +9,7 @@ import History from "./pages/History";
 import PHSensor from "./components/PhSensor";
 import Dashboard from "./components/Dashboard";
 import Pump from './components/Pump';
+import PlantPresets from "./components/PlantPresets";
 import './style.css';
 
 const SensorDashboard = () => {
@@ -28,6 +29,7 @@ const SensorDashboard = () => {
             <Route path="/ph" element={<PHSensor/>}/>
             <Route path="/dashboard" element={<Dashboard/>}/>
             <Route path="/pump" element={<Pump/>}/>
+            <Route path="/PlantPresets" element={<PlantPresets/>}/>
             <Route path="/*" element={<Navigate to="/dashboard"/>}/>
           </Routes>
         </div>

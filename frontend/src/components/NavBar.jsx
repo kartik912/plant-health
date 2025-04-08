@@ -39,7 +39,8 @@ const NavBar = () => {
     { to: "/tds", text: "TDS" },
     { to: "/ph", text: "PH Level" },
     { to: "/history", text: "History" },
-    { to: "/pump", text: "Pump" }
+    { to: "/pump", text: "Pump" },
+    { to: "/PlantPresets", text: "PlantPresets"}
   ];
 
   return (

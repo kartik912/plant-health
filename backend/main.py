@@ -136,13 +136,12 @@ def check_humidity_regularly():
     while True:
         try:
             # Only get temperature/humidity data and check it
-            requests.get("http://127.0.0.1:5000/get_temperature_humidity")
             requests.post("http://127.0.0.1:5000/check_humidity")
             
         except Exception as e:
             print(f"Error checking humidity: {e}")
         
-        time.sleep(5) #10min
+        time.sleep(600) #10min
 
 def check_and_adjust_sensors():
     """Check pH and TDS readings against set limits and activate pumps if needed"""
