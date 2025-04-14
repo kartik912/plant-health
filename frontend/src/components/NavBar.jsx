@@ -35,8 +35,8 @@ const NavBar = () => {
   const navigationLinks = [
     { to: "/dashboard", text: "Dashboard" },
     { to: "/camera", text: "Camera" },
-    { to: "/temp", text: "Temperature" },
-    { to: "/tds", text: "TDS" },
+    { to: "/temp", text: "Temp & Humidity" },
+    { to: "/tds", text: "EC" },
     { to: "/ph", text: "PH Level" },
     { to: "/history", text: "History" },
     { to: "/pump", text: "Pump" },
@@ -74,7 +74,7 @@ const NavBar = () => {
         {/* Logo and Title */}
         <div className="w-full text-center p-6 border-b border-slate-700/30 hidden md:block">
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-            Plant Care
+            Hydroagrixai
           </h1>
         </div>
 

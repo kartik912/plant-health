@@ -53,8 +53,8 @@ def fetch_sensor_data():
         time.sleep(7200) #10 mins = 600  #3hr = 10800  #7200 = 2hr
 #variable declare for pumps -----------------------------------------------------------------------------------------------
 # Define GPIO pins for motor control
-PUMP1_IN1 = 14   
-PUMP1_IN2 = 13  
+PUMP1_IN1 = 13   
+PUMP1_IN2 = 14  
 PUMP2_IN3 = 26  
 PUMP2_IN4 = 17  
 
@@ -396,8 +396,45 @@ class GroveTDS:
 tdssensor = GroveTDS(2, window_size=200)
 
 #class for ph sensor----------------------------------------------------------------
-
 class GrovePH:
+    def __init__(self, channel, window_size, slope=0.21964647467725934, offset=11.105863753723938):
+        self.channel = channel
+        self.adc = ADC()
+        self.window_size = window_size
+        self.readings = deque(maxlen=window_size)
+        
+        # Calibration parameters
+        self.slope = slope
+        self.offset = offset
+
+    def read_raw_voltage(self):
+        """Read raw voltage from ADC"""
+        raw_value = self.adc.read_voltage(self.channel)
+        return raw_value
+        
+    def voltage_to_ph(self, voltage):
+        """Convert voltage to pH value using standard formula"""
+        adjusted_voltage = (voltage * 5.0 / 1024.0) - 0.219
+        ph_value = 7 + ((2.5 - adjusted_voltage) / 0.18)
+        return ph_value
+        
+    def read_ph(self):
+        """Read pH with applied calibration"""
+        raw_voltage = self.read_raw_voltage()
+        uncalibrated_ph = self.voltage_to_ph(raw_voltage)
+        
+        # Apply calibration
+        calibrated_ph = uncalibrated_ph * self.slope + self.offset
+        return calibrated_ph
+
+    @property
+    def PH(self):
+        """Get stable pH value using moving median filter"""
+        ph_value = self.read_ph()
+        self.readings.append(ph_value)
+        return np.median(self.readings)
+
+class GrovePH1:
     def __init__(self, channel, window_size):
         self.channel = channel
         self.adc = ADC()
