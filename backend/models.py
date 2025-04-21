@@ -109,3 +109,17 @@ class SensorLimits(db.Model):
             "is_active": self.is_active,
             "updated_at": localized_date.strftime('%Y-%m-%d %H:%M:%S %Z')
         }
+
+class PlantStageStatus(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    plant_name = db.Column(db.String(255), nullable=False)
+    plant_stage = db.Column(db.String(255), nullable=False)
+    state = db.Column(db.Boolean, default=True)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "plant_name": self.plant_name,
+            "plant_stage": self.plant_stage,
+            "state": self.state
+        }

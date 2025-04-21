@@ -1,4 +1,4 @@
-from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData, SensorLimits
+from models import LightBulb, MoistureSensorData, TemperatureHumidityData, PhotoRecord, TDSData, PHData, SensorLimits, PlantStageStatus
 from checkSensorMail import SensorMonitor
 from reportlab.lib.pagesizes import letter
 from flask import request, jsonify, Flask, send_file, Response
