@@ -12,6 +12,7 @@ import adafruit_dht
 from grove_ec_sensor import GroveEC 
 # from gpiozero import Servo
 from reportlab.pdfgen import canvas
+from ultralytics import YOLO
 from datetime import datetime
 from config import app, db
 from time import sleep
@@ -19,6 +20,7 @@ from collections import deque
 import numpy as np
 import time
 import board
+import pytz
 import os
 import requests
 import socket
@@ -31,6 +33,366 @@ import lgpio
 import threading
 import signal
 import atexit
+
+#plant presets------------------------------------------------------
+PLANT_PRESETS = {
+    'Lettuce': {
+        'germination': {
+            'ec': {'min': 0.8, 'max': 1.2},
+            'ph': {'min': 6.0, 'max': 7.0}
+        },
+        'vegetative': {
+            'ec': {'min': 1.0, 'max': 1.8}, 
+            'ph': {'min': 5.8, 'max': 6.8}
+        },
+        'flowering': {
+            'ec': {'min': 1.0, 'max': 1.8}, 
+            'ph': {'min': 5.8, 'max': 6.8}
+        },
+        'harvesting': {
+            'ec': {'min': 1.0, 'max': 1.8}, 
+            'ph': {'min': 5.8, 'max': 6.8}
+        }
+    },
+    'Tomato': {
+        'germination': {
+            'ec': {'min': 1.5, 'max': 2.0},
+            'ph': {'min': 5.8, 'max': 6.3}
+        },
+        'vegetative': {
+            'ec': {'min': 2.0, 'max': 3.5},
+            'ph': {'min': 5.5, 'max': 6.5}
+        },
+        'flowering': {
+            'ec': {'min': 2.0, 'max': 3.5},
+            'ph': {'min': 5.5, 'max': 6.5}
+        },
+        'harvesting': { 
+            'ec': {'min': 2.0, 'max': 3.5},
+            'ph': {'min': 5.5, 'max': 6.5}
+        }
+    }
+}
+MODEL_PATH = '/home/kartik/Desktop/plant-health/backend/stage_detect.pt'
+# Initialize plant monitoring thread
+plant_monitor_thread = None
+plant_monitor_running = False
+plant_monitor_lock = threading.Lock()
+
+def initialize_plant_status():
+    """Initialize the plant status if it doesn't exist in the database"""
+    try:
+        plant_status = PlantStageStatus.query.first()
+        if plant_status is None:
+            default_status = PlantStageStatus(
+                plant_name="", 
+                plant_stage="", 
+                state=False
+            )
+            db.session.add(default_status)
+            db.session.commit()
+            app.logger.info("Plant status initialized")
+    except Exception as e:
+        app.logger.error(f"Error initializing plant status: {str(e)}")
+
+
+# Initialize default sensor limits if they don't exist
+def initialize_sensor_limits():
+    """Initialize default sensor limits if they don't exist"""
+    try:
+        # Check if EC sensor limits exist
+        ec_limits = SensorLimits.query.filter_by(sensor_type="ec").first()
+        if ec_limits is None:
+            default_ec = SensorLimits(
+                sensor_type="ec",
+                min_value=1.0,
+                max_value=2.0,
+                is_active=True
+            )
+            db.session.add(default_ec)
+        
+        # Check if pH sensor limits exist
+        ph_limits = SensorLimits.query.filter_by(sensor_type="ph").first()
+        if ph_limits is None:
+            default_ph = SensorLimits(
+                sensor_type="ph",
+                min_value=5.5,
+                max_value=6.5,
+                is_active=True
+            )
+            db.session.add(default_ph)
+        
+        db.session.commit()
+        app.logger.info("Sensor limits initialized")
+    except Exception as e:
+        app.logger.error(f"Error initializing sensor limits: {str(e)}")
+
+
+def update_sensor_limits_from_presets(plant_name, plant_stage):
+    """Update sensor limits based on plant presets"""
+    try:
+        # Ensure plant and stage exist in presets
+        if plant_name not in PLANT_PRESETS or plant_stage.lower() not in PLANT_PRESETS[plant_name]:
+            app.logger.warning(f"No presets found for {plant_name} in {plant_stage} stage")
+            return
+        
+        # Get preset values
+        preset = PLANT_PRESETS[plant_name][plant_stage.lower()]
+        
+        # Update EC/TDS limits
+        tds_limits = SensorLimits.query.filter_by(sensor_type="tds").first()
+        if tds_limits:
+            tds_limits.min_value = preset['ec']['min']
+            tds_limits.max_value = preset['ec']['max']
+            tds_limits.is_active = True
+            tds_limits.updated_at = datetime.utcnow()
+        else:
+            new_tds_limits = SensorLimits(
+                sensor_type="tds",
+                min_value=preset['ec']['min'],
+                max_value=preset['ec']['max'],
+                is_active=True
+            )
+            db.session.add(new_tds_limits)
+        
+        # Update pH limits
+        ph_limits = SensorLimits.query.filter_by(sensor_type="ph").first()
+        if ph_limits:
+            ph_limits.min_value = preset['ph']['min']
+            ph_limits.max_value = preset['ph']['max']
+            ph_limits.is_active = True
+            ph_limits.updated_at = datetime.utcnow()
+        else:
+            new_ph_limits = SensorLimits(
+                sensor_type="ph",
+                min_value=preset['ph']['min'],
+                max_value=preset['ph']['max'],
+                is_active=True
+            )
+            db.session.add(new_ph_limits)
+        
+        db.session.commit()
+        app.logger.info(f"Updated sensor limits for {plant_name} in {plant_stage} stage")
+    except Exception as e:
+        app.logger.error(f"Error updating sensor limits from presets: {str(e)}")
+
+def detect_plant_stage():
+    """Capture photo and detect plant stage using ML model"""
+    try:
+        # Initialize camera and capture photo
+        relay.on()
+        sleep(1)
+        camera = initialize_camera()
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"plant_stage_{timestamp}.jpg"
+        filepath = os.path.join(PHOTO_DIRECTORY, filename)
+        
+        camera.start_and_capture_file(filepath)
+        camera.close()
+        
+        # Load the model and run inference
+        model = YOLO(MODEL_PATH)
+        results = model(filepath)
+        
+        # Get the first result
+        result = results[0]
+        
+        # Get the list of detected class indices
+        class_ids = result.boxes.cls.tolist()
+        cleanup_old_photos()
+        relay.off()
+        
+        if not class_ids:
+            # No plant stage detected - update both pH and TDS sensor limits
+            ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
+            tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+            
+            if ph_limit:
+                ph_limit.min_value = 0
+                ph_limit.max_value = 14
+                ph_limit.is_active = False
+                ph_limit.updated_at = datetime.utcnow()
+            else:
+                new_ph_limit = SensorLimits(
+                    sensor_type="ph",
+                    min_value=0,
+                    max_value=14,
+                    is_active=False
+                )
+                db.session.add(new_ph_limit)
+            
+            if tds_limit:
+                tds_limit.min_value = 0
+                tds_limit.max_value = 8
+                tds_limit.is_active = False
+                tds_limit.updated_at = datetime.utcnow()
+            else:
+                new_tds_limit = SensorLimits(
+                    sensor_type="tds",
+                    min_value=0,
+                    max_value=8,
+                    is_active=False
+                )
+                db.session.add(new_tds_limit)
+            
+            # Commit the changes to the database
+            db.session.commit()
+            app.logger.warning("No plant stage detected - sensor monitoring deactivated")
+            return None
+        
+        # Get the most confident prediction
+        confidences = result.boxes.conf.tolist()
+        most_confident_idx = confidences.index(max(confidences))
+        predicted_class_id = int(class_ids[most_confident_idx])
+        
+        # Get class name from the model's names dictionary
+        predicted_class_name = result.names[predicted_class_id]
+        
+        app.logger.info(f"Detected plant stage: {predicted_class_name}")
+        
+        # Save the photo record in database
+        new_photo = PhotoRecord(
+            filename=filename, 
+            google_drive_link=filepath
+        )
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        return predicted_class_name
+    
+    except Exception as e:
+        app.logger.error(f"Error detecting plant stage: {str(e)}")
+        return None
+
+def cleanup_old_photos():
+    """Delete oldest photos, keeping only the most recent 5"""
+    try:
+        photos = sorted([f for f in os.listdir(PHOTO_DIRECTORY) if f.startswith('plant_stage')], 
+                        key=lambda x: os.path.getmtime(os.path.join(PHOTO_DIRECTORY, x)))
+        print("hi")
+        # Keep only the 5 most recent photos
+        if len(photos) > 5:
+            for old_photo in photos[:-5]:
+                os.remove(os.path.join(PHOTO_DIRECTORY, old_photo))
+                
+                # Also remove from database if it exists
+                photo_record = PhotoRecord.query.filter_by(filename=old_photo).first()
+                if photo_record:
+                    db.session.delete(photo_record)
+            
+            db.session.commit()
+            app.logger.info(f"Cleaned up {len(photos) - 5} old photos")
+    
+    except Exception as e:
+        app.logger.error(f"Error cleaning up old photos: {str(e)}")
+
+def plant_monitor_task():
+    """Background task to monitor plant stage and update settings"""
+    global plant_monitor_running
+    
+    app.logger.info("Plant monitoring started")
+    
+    try:
+        while plant_monitor_running:
+            with app.app_context():
+                # Check if automatic mode is enabled
+                plant_status = PlantStageStatus.query.first()
+                
+                if plant_status and plant_status.state and plant_status.plant_name:
+                    # Detect plant stage
+                    detected_stage = detect_plant_stage()
+                    
+                    if detected_stage:
+                        # Map model output to database stage names
+                        stage_mapping = {
+                            'Germination': 'germination',
+                            'Vegetative': 'vegetative',
+                            'Flowering': 'flowering',
+                            'Harvesting': 'harvesting'
+                            # Add more mappings as needed
+                        }
+                        
+                        normalized_stage = stage_mapping.get(detected_stage, detected_stage.lower())
+                        
+                        # Update plant stage if different
+                        if plant_status.plant_stage != normalized_stage:
+                            plant_status.plant_stage = normalized_stage
+                            db.session.commit()
+                            app.logger.info(f"Updated plant stage to: {normalized_stage}")
+                        
+                        # Update sensor limits based on plant and stage
+                        if plant_status.plant_name in PLANT_PRESETS and normalized_stage in PLANT_PRESETS[plant_status.plant_name]:
+                            # Update EC/TDS limits
+                            tds_limit = SensorLimits.query.filter_by(sensor_type="tds").first()
+                            ec_preset = PLANT_PRESETS[plant_status.plant_name][normalized_stage]['ec']
+                            
+                            if tds_limit:
+                                tds_limit.min_value = ec_preset['min']
+                                tds_limit.max_value = ec_preset['max']
+                                tds_limit.is_active = True
+                                tds_limit.updated_at = datetime.utcnow()
+                            else:
+                                new_tds_limit = SensorLimits(
+                                    sensor_type="tds",
+                                    min_value=ec_preset['min'],
+                                    max_value=ec_preset['max'],
+                                    is_active=True
+                                )
+                                db.session.add(new_tds_limit)
+                            
+                            # Update pH limits
+                            ph_limit = SensorLimits.query.filter_by(sensor_type="ph").first()
+                            ph_preset = PLANT_PRESETS[plant_status.plant_name][normalized_stage]['ph']
+                            
+                            if ph_limit:
+                                ph_limit.min_value = ph_preset['min']
+                                ph_limit.max_value = ph_preset['max']
+                                ph_limit.is_active = True
+                                ph_limit.updated_at = datetime.utcnow()
+                            else:
+                                new_ph_limit = SensorLimits(
+                                    sensor_type="ph",
+                                    min_value=ph_preset['min'],
+                                    max_value=ph_preset['max'],
+                                    is_active=True
+                                )
+                                db.session.add(new_ph_limit)
+                            
+                            db.session.commit()
+                            app.logger.info(f"Updated sensor limits for {plant_status.plant_name} in {normalized_stage} stage")
+                        else:
+                            app.logger.warning(f"No presets found for {plant_status.plant_name} in {normalized_stage} stage")
+            
+            # Sleep for the monitoring interval
+            time.sleep(600)  # 2 hours in seconds 7200 && 600 is 10min
+    
+    except Exception as e:
+        app.logger.error(f"Error in plant monitor task: {str(e)}")
+    
+    finally:
+        app.logger.info("Plant monitoring stopped")
+
+def start_plant_monitor():
+    """Start the plant monitoring thread if not already running"""
+    global plant_monitor_thread, plant_monitor_running
+    
+    with plant_monitor_lock:
+        if plant_monitor_thread is None or not plant_monitor_thread.is_alive():
+            plant_monitor_running = True
+            plant_monitor_thread = threading.Thread(target=plant_monitor_task)
+            plant_monitor_thread.daemon = True
+            plant_monitor_thread.start()
+            app.logger.info("Plant monitoring thread started")
+
+def stop_plant_monitor():
+    """Stop the plant monitoring thread"""
+    global plant_monitor_running
+    
+    with plant_monitor_lock:
+        plant_monitor_running = False
+        app.logger.info("Plant monitoring thread stopping")
+
 
 # to keep fetching data from sensors-----------------------------------------------------
 def fetch_sensor_data():
@@ -563,6 +925,76 @@ def check_status_mail():
         return jsonify({"message": "Sensor status check done successfully"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 400
+
+# #plant stage route----------------------------------------------------------------------------------------------
+
+@app.route("/get_plant_status", methods=["GET"])
+def get_plant_status():
+    """Get current plant status"""
+    try:
+        plant_status = PlantStageStatus.query.first()
+        if plant_status is None:
+            initialize_plant_status()
+            plant_status = PlantStageStatus.query.first()
+        
+        return jsonify(plant_status.to_json()), 200
+    except Exception as e:
+        app.logger.error(f"Error getting plant status: {str(e)}")
+        return jsonify({"message": str(e)}), 400
+
+@app.route("/update_plant_status", methods=["POST"])
+def update_plant_status():
+    """Update plant status (automatic/manual mode)"""
+    try:
+        data = request.json
+        plant_status = PlantStageStatus.query.first()
+        
+        if plant_status is None:
+            initialize_plant_status()
+            plant_status = PlantStageStatus.query.first()
+        
+        # Update state (automatic/manual)
+        if 'state' in data:
+            plant_status.state = data['state']
+        
+        db.session.commit()
+        
+        # If switching to automatic mode, start the monitoring thread
+        if plant_status.state:
+            start_plant_monitor()
+        
+        return jsonify(plant_status.to_json()), 200
+    except Exception as e:
+        app.logger.error(f"Error updating plant status: {str(e)}")
+        return jsonify({"message": str(e)}), 400
+
+
+@app.route("/set_active_plant", methods=["POST"])
+def set_active_plant():
+    """Set the active plant"""
+    try:
+        data = request.json
+        plant_status = PlantStageStatus.query.first()
+        
+        if plant_status is None:
+            initialize_plant_status()
+            plant_status = PlantStageStatus.query.first()
+        
+        # Update plant name
+        if 'plant_name' in data:
+            plant_status.plant_name = data['plant_name']
+        
+        db.session.commit()
+        
+        # If in manual mode, update sensor limits based on plant and stage
+        if not plant_status.state and plant_status.plant_name and plant_status.plant_stage:
+            update_sensor_limits_from_presets(plant_status.plant_name, plant_status.plant_stage)
+        
+        return jsonify(plant_status.to_json()), 200
+    except Exception as e:
+        app.logger.error(f"Error setting active plant: {str(e)}")
+        return jsonify({"message": str(e)}), 400
+
 
 #pump routes----------------------------------------------------------------------------------------------
 @app.route("/check_and_adjust_sensors", methods=["POST"])
@@ -1529,12 +1961,23 @@ def signal_handler(sig, frame):
         print(f"Error in signal handler: {e}")
     sys.exit(0)
 
+
+
 if __name__ == "__main__":
     with app.app_context():
+        # Create all database tables
         db.create_all()
+        
+        # Initialize plant status and sensor limits
+        initialize_plant_status()
+        initialize_sensor_limits()
+        
+        # Start monitoring if automatic mode is enabled
+        plant_status = PlantStageStatus.query.first()
+        if plant_status and plant_status.state:
+            start_plant_monitor()
     
-    # Start the background task
-
+    # Start the background tasks
     data_fetch_thread = threading.Thread(target=fetch_sensor_data)
     data_fetch_thread.daemon = True  # This makes sure the thread will exit when the main program does
     data_fetch_thread.start()

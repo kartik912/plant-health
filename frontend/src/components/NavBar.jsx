@@ -48,7 +48,7 @@ const NavBar = () => {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 w-full bg-slate-800 border-b border-slate-700/30 z-30 px-4 py-2 flex justify-between items-center">
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-          Plant Care
+          Hydroagrixai
         </h1>
         <div className="flex items-center space-x-4">
           <div className="text-slate-300 text-xs text-right">
