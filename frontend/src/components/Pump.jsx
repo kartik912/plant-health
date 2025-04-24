@@ -157,15 +157,15 @@ const Pump = (props) => {
       setSaveStatus("Validating...");
       
       // Check if pH range is at least 1 if active
-      if (phLimits.active && (phLimits.max - phLimits.min < 1)) {
-        setSaveStatus("pH range needs to be at least 1");
+      if (phLimits.active && (phLimits.max - phLimits.min <= 0.5)) {
+        setSaveStatus("pH range needs to be at least 0.5");
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }
       
       // Check if TDS range is at least 1 if active
-      if (tdsLimits.active && (tdsLimits.max - tdsLimits.min < 0.5)) {
-        setSaveStatus("TDS range needs to be at least 1");
+      if (tdsLimits.active && (tdsLimits.max - tdsLimits.min <= 0.5)) {
+        setSaveStatus("TDS range needs to be at least 0.5");
         setTimeout(() => setSaveStatus(""), 3000);
         return;
       }

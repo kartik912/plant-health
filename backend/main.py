@@ -38,38 +38,38 @@ import atexit
 PLANT_PRESETS = {
     'Lettuce': {
         'germination': {
-            'ec': {'min': 0.8, 'max': 1.2},
-            'ph': {'min': 6.0, 'max': 7.0}
+            'ec': {'min': 0.5, 'max': 1.2},
+            'ph': {'min': 6.0, 'max': 6.5}
         },
         'vegetative': {
-            'ec': {'min': 1.0, 'max': 1.8}, 
-            'ph': {'min': 5.8, 'max': 6.8}
+            'ec': {'min': 1.2, 'max': 1.8}, 
+            'ph': {'min': 6.0, 'max': 6.5}
         },
         'flowering': {
-            'ec': {'min': 1.0, 'max': 1.8}, 
-            'ph': {'min': 5.8, 'max': 6.8}
+            'ec': {'min': 1.2, 'max': 1.8}, 
+            'ph': {'min': 6.0, 'max': 6.5}
         },
         'harvesting': {
-            'ec': {'min': 1.0, 'max': 1.8}, 
-            'ph': {'min': 5.8, 'max': 6.8}
+            'ec': {'min': 1.2, 'max': 1.8}, 
+            'ph': {'min': 6.0, 'max': 6.5}
         }
     },
     'Tomato': {
         'germination': {
-            'ec': {'min': 1.5, 'max': 2.0},
-            'ph': {'min': 5.8, 'max': 6.3}
+            'ec': {'min': 0.5, 'max': 1.2},
+            'ph': {'min': 6.0, 'max': 6.5}
         },
         'vegetative': {
             'ec': {'min': 2.0, 'max': 3.5},
-            'ph': {'min': 5.5, 'max': 6.5}
+            'ph': {'min': 2.0, 'max': 3.0}
         },
         'flowering': {
             'ec': {'min': 2.0, 'max': 3.5},
-            'ph': {'min': 5.5, 'max': 6.5}
+            'ph': {'min': 2.5, 'max': 3.5}
         },
         'harvesting': { 
             'ec': {'min': 2.0, 'max': 3.5},
-            'ph': {'min': 5.5, 'max': 6.5}
+            'ph': {'min': 3.0, 'max': 4.0}
         }
     }
 }

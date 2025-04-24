@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HiInformationCircle } from 'react-icons/hi';
+import lettuceImage from '../components/'; // Adjust the import path as necessary
 
 const PlantPresets = () => {
   const [isAutomatic, setIsAutomatic] = useState(false);
@@ -16,18 +17,19 @@ const PlantPresets = () => {
     {
       name: 'Lettuce',
       stages: {
-        germination: { ec: { min: 0.8, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
-        vegetative: { ec: { min: 1.0, max: 1.4 }, ph: { min: 5.8, max: 6.3 } }
+        germination: { ec: { min: 0.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
+        vegetative: { ec: { min: 1.2, max: 1.8 }, ph: { min: 6.0, max: 6.5 } }
       },
-      image: 'plant-health/frontend/src/images/lettuce.jpg'  // Changed to relative path
+      // Use imported images or ensure correct public path
+      image: lettuceImage
     },
     {
       name: 'Tomato',
       stages: {
-        germination: { ec: { min: 1.5, max: 2.0 }, ph: { min: 5.8, max: 6.3 } },
-        vegetative: { ec: { min: 2.0, max: 3.5 }, ph: { min: 5.5, max: 6.5 } }
+        germination: { ec: { min: 10.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
+        vegetative: { ec: { min: 2.0, max: 3.5 }, ph: { min: 4.0, max: 4.5 } }
       },
-      image: '/images/strawberry.png'  // Changed to relative path and fixed typo
+      image: 'strawberry.png'
     }
   ];
 
@@ -96,6 +98,19 @@ const PlantPresets = () => {
     } catch (error) {
       console.error('Error setting active plant:', error);
     }
+  };
+
+  // Helper function to get proper image URL or fallback to a colored div
+  const getImageUrl = (imageName) => {
+    // Try different possible paths - adjust these based on your project structure
+    const possiblePaths = [
+      `/images/${imageName}`,       // From public/images
+      `/src/assets/images/${imageName}`, // From src/assets/images
+      `./assets/images/${imageName}`,  // Relative path
+      imageName                     // Direct filename
+    ];
+    
+    return possiblePaths[0]; // Start with first option
   };
 
   return (
@@ -175,15 +190,20 @@ const PlantPresets = () => {
             {plantCatalog.map((plant) => (
               <div key={plant.name} className="bg-slate-700/30 rounded-lg overflow-hidden border border-slate-600/30">
                 <div className="w-full h-48 relative">
-                  <img 
-                    src={plant.image} 
-                    alt={plant.name} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/api/placeholder/400/320";
+                  {/* Using proper error handling for images */}
+                  <div 
+                    className="w-full h-full bg-slate-800 flex items-center justify-center"
+                    style={{
+                      backgroundImage: `url(${getImageUrl(plant.image)})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
                     }}
-                  />
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800 opacity-0 hover:opacity-90 transition-opacity duration-300">
+                      <span className="text-white font-medium">{plant.name}</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="text-xl font-semibold text-white mb-3">{plant.name}</h3>
