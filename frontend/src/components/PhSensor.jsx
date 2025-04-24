@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { RefreshCw } from "lucide-react";
 
 const PHSensor = () => {
   const [currentPH, setCurrentPH] = useState({
@@ -16,42 +17,80 @@ const PHSensor = () => {
     state: "Neutral"
   });
   const [phData, setPHData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const maxDataPoints = 20; // Limit the number of points shown on graph
   const url = import.meta.env.VITE_API_URL;
 
-  useEffect(() => {
-    const fetchPHHistoryData = async () => {
-      try {
-        const response = await fetch(`${url}/get_ph_history`);
-        const data = await response.json();
-        const formattedData = data.ph_data.map((item) => {
-          const phValue = parseFloat(item.ph_value);
-          return {
-            time: item.timestamp,
-            value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
-            state: getPHState(isNaN(phValue) ? 0 : phValue)
-          };
+  const fetchPHData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${url}/get_ph`);
+      const data = await response.json();
+      
+      // Update current PH value
+      if (data && data.ph_value !== undefined) {
+        const phValue = parseFloat(data.ph_value);
+        setCurrentPH({
+          value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+          state: getPHState(isNaN(phValue) ? 0 : phValue)
         });
         
-        // Set historical data
-        const recentData = formattedData.slice(-maxDataPoints);
-        setPHData(recentData);
+        // Add to history
+        const newEntry = {
+          time: new Date().toLocaleTimeString(),
+          value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+          state: getPHState(isNaN(phValue) ? 0 : phValue)
+        };
         
-        // Set current value from the latest entry
-        if (recentData.length > 0) {
-          const latestEntry = recentData[recentData.length - 1];
-          setCurrentPH({
-            value: latestEntry.value,
-            state: latestEntry.state
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching PH history data:", error);
+        setPHData(prevData => {
+          const newData = [...prevData, newEntry];
+          // Keep only the last maxDataPoints
+          return newData.slice(-maxDataPoints);
+        });
       }
-    };
+    } catch (error) {
+      console.error("Error fetching PH data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const fetchPHHistoryData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${url}/get_ph_history`);
+      const data = await response.json();
+      const formattedData = data.ph_data.map((item) => {
+        const phValue = parseFloat(item.ph_value);
+        return {
+          time: item.timestamp,
+          value: isNaN(phValue) ? 0 : parseFloat(phValue.toFixed(1)),
+          state: getPHState(isNaN(phValue) ? 0 : phValue)
+        };
+      });
+      
+      // Set historical data
+      const recentData = formattedData.slice(-maxDataPoints);
+      setPHData(recentData);
+      
+      // Set current value from the latest entry
+      if (recentData.length > 0) {
+        const latestEntry = recentData[recentData.length - 1];
+        setCurrentPH({
+          value: latestEntry.value,
+          state: latestEntry.state
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching PH history data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPHHistoryData();
-    const phInterval = setInterval(fetchPHHistoryData, 300000); // Update every 5 minutes 5000 300000
+    const phInterval = setInterval(fetchPHHistoryData, 300000); // Update every 5 minutes
     return () => clearInterval(phInterval);
   }, []);
 
@@ -91,8 +130,18 @@ const PHSensor = () => {
             {/* Current Reading */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
-                <div className="flex items-center gap-2 text-lg font-medium text-green-400">
-                  PH Level
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-lg font-medium text-green-400">
+                    PH Level
+                  </div>
+                  <button 
+                    onClick={fetchPHData}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-3 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw size={16} className={`${isLoading ? "animate-spin" : ""}`} />
+                    <span>Update</span>
+                  </button>
                 </div>
                 <div className="mt-2 text-3xl font-bold text-white">
                   {currentPH.value}

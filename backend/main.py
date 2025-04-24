@@ -34,6 +34,12 @@ import threading
 import signal
 import atexit
 
+RELAY_PIN_FAN = 22
+relay_fan = OutputDevice(RELAY_PIN_FAN)
+#relay setup
+RELAY_PIN = 16
+relay = OutputDevice(RELAY_PIN)
+
 #plant presets------------------------------------------------------
 PLANT_PRESETS = {
     'Lettuce': {
@@ -467,9 +473,7 @@ def cleanup(h):
 
 handle = setup_servo()
 
-#relay setup
-RELAY_PIN = 16
-relay = OutputDevice(RELAY_PIN)
+
 
 # Initialize lgpio
 h = lgpio.gpiochip_open(0)  # Open GPIO chip 0
@@ -597,12 +601,11 @@ def check_temperature():
         if temperature_value > temperature_max:
             # Temperature too high, activate fan
             print(f"Temperature {temperature_value} above maximum {temperature_max}, starting fan")
-            relay.on()
-        
+            relay_fan.on()     
         elif temperature_value < temperature_min+buffer:
             # Temperature too low, stop fan
             print(f"Temperature {temperature_value} below minimum {temperature_min}, stopping fan")
-            relay.off()
+            relay_fan.off()
             
 
 def pump1_forward():

@@ -25,7 +25,7 @@ const PlantPresets = () => {
     {
       name: 'Tomato',
       stages: {
-        germination: { ec: { min: 10.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
+        germination: { ec: { min: 1.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
         vegetative: { ec: { min: 2.0, max: 3.5 }, ph: { min: 4.0, max: 4.5 } }
       },
       image: 'src/images/tomato.jpg'
