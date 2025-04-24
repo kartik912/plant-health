@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { HiInformationCircle } from 'react-icons/hi';
-import lettuceImage from '../components/'; // Adjust the import path as necessary
 
 const PlantPresets = () => {
   const [isAutomatic, setIsAutomatic] = useState(false);
@@ -16,12 +15,12 @@ const PlantPresets = () => {
   const plantCatalog = [
     {
       name: 'Lettuce',
+      image: 'src/images/lettuce.jpg',
       stages: {
         germination: { ec: { min: 0.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
         vegetative: { ec: { min: 1.2, max: 1.8 }, ph: { min: 6.0, max: 6.5 } }
       },
       // Use imported images or ensure correct public path
-      image: lettuceImage
     },
     {
       name: 'Tomato',
@@ -29,7 +28,7 @@ const PlantPresets = () => {
         germination: { ec: { min: 10.5, max: 1.2 }, ph: { min: 6.0, max: 6.5 } },
         vegetative: { ec: { min: 2.0, max: 3.5 }, ph: { min: 4.0, max: 4.5 } }
       },
-      image: 'strawberry.png'
+      image: 'src/images/tomato.jpg'
     }
   ];
 
@@ -199,7 +198,9 @@ const PlantPresets = () => {
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat'
                     }}
+                    
                   >
+                    <img src={plant.image} alt={plant.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-800 opacity-0 hover:opacity-90 transition-opacity duration-300">
                       <span className="text-white font-medium">{plant.name}</span>
                     </div>

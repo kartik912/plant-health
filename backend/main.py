@@ -239,7 +239,7 @@ def detect_plant_stage():
             # Commit the changes to the database
             db.session.commit()
             app.logger.warning("No plant stage detected - sensor monitoring deactivated")
-            return None
+            return "No plant stage detected"
         
         # Get the most confident prediction
         confidences = result.boxes.conf.tolist()
