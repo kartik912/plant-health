@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Square, Lightbulb } from 'lucide-react';
+import { Camera, Square, Lightbulb, Fan } from 'lucide-react';
 import { io } from "socket.io-client";
 
 const PlantCamera = () => {
@@ -8,11 +8,13 @@ const PlantCamera = () => {
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [liveStreamFrame, setLiveStreamFrame] = useState(null);
   const [lightStatus, setLightStatus] = useState('OFF');
+  const [fanStatus, setFanStatus] = useState('OFF');
   const url = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    // Initial fetch of light status
+    // Initial fetch of light and fan status
     fetchLightStatus();
+    fetchFanStatus();
 
     let socket;
     if (isLiveStreaming) {
@@ -53,6 +55,18 @@ const PlantCamera = () => {
     }
   };
 
+  const fetchFanStatus = async () => {
+    try {
+      const response = await fetch(`${url}/get_relay_status_fan`);
+      if (response.ok) {
+        const data = await response.json();
+        setFanStatus(data.status);
+      }
+    } catch (error) {
+      console.error('Error fetching fan status:', error);
+    }
+  };
+
   const toggleLight = async () => {
     try {
       const response = await fetch(`${url}/toggle_relay`, {
@@ -64,6 +78,20 @@ const PlantCamera = () => {
       }
     } catch (error) {
       console.error('Error toggling light:', error);
+    }
+  };
+
+  const toggleFan = async () => {
+    try {
+      const response = await fetch(`${url}/toggle_relay_fan`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFanStatus(data.status);
+      }
+    } catch (error) {
+      console.error('Error toggling fan:', error);
     }
   };
 
@@ -159,6 +187,18 @@ const PlantCamera = () => {
               <Lightbulb className="w-5 h-5" />
               Light: {lightStatus}
             </button>
+
+            <button
+              onClick={toggleFan}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg ${
+                fanStatus === 'ON'
+                  ? 'bg-blue-500 hover:bg-blue-600'
+                  : 'bg-gray-600 hover:bg-gray-700'
+              } text-white font-medium transition-all duration-300`}
+            >
+              <Fan className="w-5 h-5" />
+              Fan: {fanStatus}
+            </button>
           </div>
 
           {/* Image Display */}
@@ -221,6 +261,17 @@ const PlantCamera = () => {
               >
                 <Lightbulb className="w-5 h-5" />
                 Light: {lightStatus}
+              </button>
+              <button
+                onClick={toggleFan}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg ${
+                  fanStatus === 'ON'
+                    ? 'bg-blue-500 hover:bg-blue-600'
+                    : 'bg-gray-600 hover:bg-gray-700'
+                } text-white font-medium transition-all duration-300`}
+              >
+                <Fan className="w-5 h-5" />
+                Fan: {fanStatus}
               </button>
             </div>
           </div>

@@ -1492,6 +1492,7 @@ def get_tds():
         # Calculate stable EC value
         stable_ec = np.median(ec_readings) if ec_readings else ec_value
         set_servo_angle(handle, 90)
+        lgpio.tx_pwm(handle, SERVO_PIN, 0, 0)
         if stable_ec:
             new_data = TDSData(tds_value=stable_ec)
             db.session.add(new_data)
@@ -1906,6 +1907,36 @@ def get_contacts():
 
     return jsonify({"contacts": results}), 200
 
+@app.route("/toggle_relay_fan", methods=["POST"])
+def toggle_relay_fan():
+    try:
+        # Toggle the relay state
+        if relay_fan.is_active:
+            relay_fan.off()
+            light_status_fan = "OFF"
+        else:
+            relay_fan.on()
+            light_status_fan = "ON"
+
+        # # Create a new LightBulb entry with the status and current timestamp
+        # new_light_bulb = LightBulb(status=light_status)
+        # db.session.add(new_light_bulb)
+        # db.session.commit()
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+    return jsonify({"status": light_status_fan}), 200
+
+@app.route("/get_relay_status_fan", methods=["GET"])
+def get_relay_status_fan():
+    try:
+        # Get current relay status
+        light_status_fan = "ON" if relay_fan.is_active else "OFF"
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+    return jsonify({"status": light_status_fan}), 200
+
 @app.route("/toggle_relay", methods=["POST"])
 def toggle_relay():
     try:
@@ -1918,9 +1949,9 @@ def toggle_relay():
             light_status = "ON"
 
         # Create a new LightBulb entry with the status and current timestamp
-        new_light_bulb = LightBulb(status=light_status)
-        db.session.add(new_light_bulb)
-        db.session.commit()
+        # new_light_bulb = LightBulb(status=light_status)
+        # db.session.add(new_light_bulb)
+        # db.session.commit()
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
