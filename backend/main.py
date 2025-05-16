@@ -24,6 +24,7 @@ import pytz
 import os
 import requests
 import socket
+import socketio
 import math
 import sys
 import io
@@ -33,6 +34,7 @@ import lgpio
 import threading
 import signal
 import atexit
+import cv2
 
 RELAY_PIN_FAN = 22
 relay_fan = OutputDevice(RELAY_PIN_FAN)
@@ -188,14 +190,39 @@ def detect_plant_stage():
         # Initialize camera and capture photo
         relay.on()
         sleep(1)
-        camera = initialize_camera()
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"plant_stage_{timestamp}.jpg"
-        filepath = os.path.join(PHOTO_DIRECTORY, filename)
+        # Explicitly declare global variables
+        global global_camera
         
-        camera.start_and_capture_file(filepath)
-        camera.close()
+        # Initialize USB camera
+        camera = None
+        try:
+            # Use OpenCV to capture from USB camera
+            camera = cv2.VideoCapture(CAMERA_INDEX)  # CAMERA_INDEX should be defined at the top of your file (usually 0)
+            
+            if not camera.isOpened():
+                raise Exception("Failed to open USB camera")
+                
+            # Set camera properties if needed
+            camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"plant_stage_{timestamp}.jpg"
+            filepath = os.path.join(PHOTO_DIRECTORY, filename)
+            
+            # Capture frame from USB camera
+            ret, frame = camera.read()
+            if not ret:
+                raise Exception("Failed to capture image from USB camera")
+                
+            # Save the captured frame
+            cv2.imwrite(filepath, frame)
+            
+        finally:
+            # Always release the camera
+            if camera is not None:
+                camera.release()
         
         # Load the model and run inference
         model = YOLO(MODEL_PATH)
@@ -269,6 +296,7 @@ def detect_plant_stage():
     
     except Exception as e:
         app.logger.error(f"Error detecting plant stage: {str(e)}")
+        relay.off()  # Make sure to turn off relay in case of error
         return None
 
 def cleanup_old_photos():
@@ -758,7 +786,7 @@ class GroveTDS:
         self.readings.append(tds_value)  # Add new value to moving window
         return np.median(self.readings)  # Return median value tds
 
-tdssensor = GroveTDS(2, window_size=200)
+tdssensor = GroveTDS(2, window_size=250)
 
 #class for ph sensor----------------------------------------------------------------
 class GrovePH:
@@ -823,26 +851,42 @@ Phsensor = GrovePH(channel=4, window_size=200)
     # Camera ------------------------------------------------------------------------------
 
 socketio = SocketIO(app, cors_allowed_origins="*")
+# Ensure the photo directory exists
+PHOTO_DIRECTORY = "captured_photos"
+os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
+
+# Global variables for camera management
 is_streaming = False
 camera_thread = None
-
 global_camera = None
 camera_lock = threading.Lock()
+CAMERA_INDEX = 0  # Usually 0 for the first USB camera, change if needed
 
 def initialize_camera():
+    """Initialize and return the USB camera"""
     global global_camera
     with camera_lock:
         if global_camera is not None:
             try:
-                global_camera.close()
+                global_camera.release()
             except:
                 pass
         
-        global_camera = Picamera2()
-        global_camera.start()
+        # Open camera with OpenCV
+        global_camera = cv2.VideoCapture(CAMERA_INDEX)
+        
+        # Check if camera opened successfully
+        if not global_camera.isOpened():
+            raise Exception("Could not open USB camera")
+            
+        # Set camera properties if needed
+        global_camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        global_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            
     return global_camera
 
 def generate_frames():
+    """Generate camera frames and send them via websocket"""
     global is_streaming, global_camera
     
     try:
@@ -850,12 +894,18 @@ def generate_frames():
         
         while is_streaming:
             # Capture frame
-            frame = camera.capture_image()
+            ret, frame = camera.read()
             
+            if not ret:
+                print("Failed to capture frame")
+                break
+                
             # Convert frame to JPEG
-            buffer = io.BytesIO()
-            frame.save(buffer, format="JPEG")
-            frame_bytes = buffer.getvalue()
+            ret, buffer = cv2.imencode('.jpg', frame)
+            if not ret:
+                continue
+                
+            frame_bytes = buffer.tobytes()
             
             # Encode frame to base64
             encoded_frame = base64.b64encode(frame_bytes).decode('utf-8')
@@ -869,11 +919,8 @@ def generate_frames():
     finally:
         with camera_lock:
             if global_camera is not None:
-                global_camera.close()
+                global_camera.release()
                 global_camera = None
-
-PHOTO_DIRECTORY = "captured_photos"
-os.makedirs(PHOTO_DIRECTORY, exist_ok=True)
 #-------------------------------------------------------------------------------------
 
 
@@ -1331,14 +1378,26 @@ def stop_stream():
 def capture_photo():
     try:
         camera = initialize_camera()
-
+        global global_camera
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"photo_{timestamp}.jpg"
         filepath = os.path.join(PHOTO_DIRECTORY, filename)
 
-        camera.start_and_capture_file(filepath)
-        camera.close()
+        # Capture a frame
+        ret, frame = camera.read()
+        if not ret:
+            raise Exception("Failed to capture image")
+            
+        # Save the frame
+        cv2.imwrite(filepath, frame)
+        
+        # Release the camera
+        with camera_lock:
+            if global_camera is not None:
+                global_camera.release()
+                global_camera = None
 
+        # Save record to database
         new_photo = PhotoRecord(
             filename=filename, 
             google_drive_link=filepath
@@ -1356,7 +1415,6 @@ def capture_photo():
         app.logger.error(f"Error capturing photo: {str(e)}")
         return jsonify({"message": str(e)}), 400
 
-
 # New route to get photo records
 @app.route("/get_photo_records", methods=["GET"])
 def get_photo_records():
@@ -1371,7 +1429,9 @@ def get_photo_records():
 def get_latest_photo():
     try:
         # Get the most recently captured photo
-        photos = sorted([f for f in os.listdir(PHOTO_DIRECTORY) if f.endswith('.jpg')], reverse=True)
+        photos = sorted([f for f in os.listdir(PHOTO_DIRECTORY) 
+                if f.startswith('photo_') and f.endswith('.jpg')], 
+                reverse=True)
         
         if not photos:
             return jsonify({"message": "No photos found"}), 404

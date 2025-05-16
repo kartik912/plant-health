@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HiExternalLink, HiMenu, HiX } from "react-icons/hi";
 
+// Import the logo directly
+const logoImage = 'src/images/logo.jpg'; // Update this path to match your project structure
+
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [locationData, setLocationData] = useState({ state: "", country: "" });
@@ -38,7 +41,7 @@ const NavBar = () => {
     { to: "/temp", text: "Temp & Humidity" },
     { to: "/tds", text: "EC" },
     { to: "/ph", text: "PH Level" },
-    { to: "/history", text: "History" },
+    { to: "/history", text: "Sensor Report" },
     { to: "/pump", text: "Pump" },
     { to: "/PlantPresets", text: "PlantPresets"}
   ];
@@ -47,9 +50,13 @@ const NavBar = () => {
     <>
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 w-full bg-slate-800 border-b border-slate-700/30 z-30 px-4 py-2 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-          Hydroagrixai
-        </h1>
+        <div className="flex items-center">
+          <div 
+            className="h-9 w-10 bg-slate-800 flex items-center justify-center"
+          >
+            <img src={logoImage} alt="Hydroagrixai Logo" className="h-full object-contain" />
+          </div>
+        </div>
         <div className="flex items-center space-x-4">
           <div className="text-slate-300 text-xs text-right">
             📍 {locationData.state}, {locationData.country}
@@ -71,11 +78,11 @@ const NavBar = () => {
       <div className={`fixed top-0 left-0 h-full flex flex-col items-center bg-gradient-to-b from-slate-800 to-slate-900 w-full md:w-[20vw] md:min-w-[250px] border-r border-slate-700/30 shadow-lg z-20 overflow-y-auto transition-transform duration-300 ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        {/* Logo and Title */}
+        {/* Logo */}
         <div className="w-full text-center p-6 border-b border-slate-700/30 hidden md:block">
-          <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-            Hydroagrixai
-          </h1>
+          <div className="h-12 w-auto mx-auto bg-slate-800 flex items-center justify-center">
+            <img src={logoImage} alt="Hydroagrixai Logo" className="h-full object-contain" />
+          </div>
         </div>
 
         {/* Display Location - Hidden on mobile, shown only in desktop sidebar */}
